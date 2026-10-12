@@ -34,7 +34,7 @@ MEDITATION_CORS_ORIGINS=https://<开发方的子域名>
 
 ```python
 MIDDLEWARE = [
-    # 冥想室对外接口的跨域放行。放在**最外层**：响应阶段它最后执行，
+    # 冥想室对外接口的跨域放行。放在最外层：响应阶段它最后执行，
     # 保证 CORS 头不会被其它中间件覆盖。只作用于 /meditation/api/。
     'web.middleware.meditation_cors.MeditationCorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
