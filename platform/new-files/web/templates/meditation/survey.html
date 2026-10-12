@@ -1,0 +1,100 @@
+{% extends 'layout/basic.html' %}
+{% load static %}
+
+{% block title %}冥想室体验反馈{% endblock %}
+
+{% block css %}
+    <style>
+        .survey-wrap { max-width: 720px; margin: 32px auto; background: #fff; padding: 28px;
+                       border-radius: 10px; }
+        .q-item { margin-bottom: 20px; }
+        .q-item .q-title { font-weight: 600; margin-bottom: 8px; }
+        .q-scale { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+        .q-scale label { cursor: pointer; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="survey-wrap shadow">
+        <h4 class="text-center mb-2">冥想室体验反馈</h4>
+        <p class="text-muted text-center small mb-4">
+            单号 {{ res_obj.res_form.uid }}　使用时间 {{ res_obj.res_datetime|default_if_none:"—" }}<br>
+            你的评价将帮助我们改进服务，请放心填写。
+        </p>
+
+        <form id="surveyForm">
+            {% csrf_token %}
+
+            <div class="q-item">
+                <div class="q-title">1. 你对本次冥想室的整体体验满意吗？</div>
+                <div class="q-scale">
+                    {% for v in "12345" %}
+                        <label><input type="radio" name="question1" value="{{ v }}" required> {{ v }} 分</label>
+                    {% endfor %}
+                </div>
+                <div class="text-muted small">1 = 很不满意，5 = 非常满意</div>
+            </div>
+
+            <div class="q-item">
+                <div class="q-title">2. 冥想室的环境（整洁、安静、氛围）是否符合预期？</div>
+                <div class="q-scale">
+                    {% for v in "12345" %}
+                        <label><input type="radio" name="question2" value="{{ v }}" required> {{ v }} 分</label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="q-item">
+                <div class="q-title">3. 设备（音波枕、投影仪、水波纹灯等）使用是否顺畅？</div>
+                <div class="q-scale">
+                    {% for v in "12345" %}
+                        <label><input type="radio" name="question3" value="{{ v }}" required> {{ v }} 分</label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="q-item">
+                <div class="q-title">4. 值班员的引导与协助是否到位？</div>
+                <div class="q-scale">
+                    {% for v in "12345" %}
+                        <label><input type="radio" name="question4" value="{{ v }}" required> {{ v }} 分</label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="q-item">
+                <div class="q-title">5. 其他意见或建议（可不填）</div>
+                <textarea name="question5" class="form-control" rows="4" maxlength="1024"></textarea>
+            </div>
+
+            <div class="text-center">
+                <button type="button" id="submitSurvey" class="btn btn-primary px-5">提交</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script>
+        $('#submitSurvey').on('click', function () {
+            $.ajax({
+                url: location.href,
+                type: 'POST',
+                data: $('#surveyForm').serialize(),
+                dataType: 'JSON',
+                success: function (res) {
+                    alert(res.msg || (res.status ? '提交成功' : '提交失败'));
+                    if (res.status) {
+                        document.getElementById('surveyForm').innerHTML =
+                            '<div class="text-center py-5 text-success">'
+                            + '<i class="fa fa-check-circle fa-3x"></i>'
+                            + '<p class="mt-3">感谢你的反馈！</p></div>';
+                    }
+                },
+                error: function () {
+                    alert('提交失败，请稍后重试');
+                }
+            });
+        });
+    </script>
+{% endblock %}

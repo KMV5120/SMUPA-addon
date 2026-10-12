@@ -1,0 +1,165 @@
+{% extends 'layout/basic.html' %}
+{% load static %}
+{% load meditation_tags %}
+
+{% block title %}冥想室选座总览{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/reservation_list.css' %}">
+    <link rel="stylesheet" href="{% static 'css/meditation.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="container p-md-5">
+        <div class="row g-3">
+            {# ---------------- 左：座位图 ---------------- #}
+            <div class="col-lg-6">
+                <div class="box shadow h-100">
+                    <div class="box-title">
+                        <h5><i class="fa fa-th" aria-hidden="true"></i> 座位占用
+                            <span class="text-muted small">（{% med_room %} 冥想室）</span>
+                        </h5>
+                    </div>
+                    <div class="box-body p-3">
+                        <div class="row g-2 mb-3">
+                            <div class="col-7">
+                                <label class="form-label mb-1">使用日期</label>
+                                <select id="selDate" class="form-select form-select-sm">
+                                    {% for d in date_options %}
+                                        <option value="{{ d|date:'Y-m-d' }}"
+                                                {% if d == date_options.0 %}selected{% endif %}>
+                                            {{ d|date:'Y-m-d' }}（周{{ d|date:'D' }}）
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label mb-1">时段</label>
+                                <select id="selSlot" class="form-select form-select-sm">
+                                    {% for sid, label in slots %}
+                                        <option value="{{ sid }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        {% include 'meditation/_seat_map.html' with seat_map_id='selSeatMap' %}
+
+                        <div class="med-legend">
+                            <span><i></i>空闲</span>
+                            <span class="lg-taken"><i></i>已占用</span>
+                        </div>
+                        <p class="med-tip text-center mt-2 mb-0">
+                            每档 40 分钟；同一时段最多 17 人。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {# ---------------- 右：该时段预约明细 ---------------- #}
+            <div class="col-lg-6">
+                <div class="box shadow h-100">
+                    <div class="box-title">
+                        <h5><i class="fa fa-list-ul" aria-hidden="true"></i> 该时段预约明细</h5>
+                        <span id="statText" class="text-muted small"></span>
+                    </div>
+                    <div class="box-body p-3">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead>
+                            <tr>
+                                <th>单号</th>
+                                <th>姓名</th>
+                                <th>时段</th>
+                                <th>座位</th>
+                                <th>状态</th>
+                            </tr>
+                            </thead>
+                            <tbody id="bookingBody">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">加载中…</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script>
+        // 状态码 → 文案（与 models.meditation_status_choice 保持一致）
+        const MED_STATUS = {0: '预约未完成', 1: '接待未完成', 2: '已完成', 3: '作废',
+                            4: '改约', 5: '未验证预约'};
+        const SEAT_MAP_API = "{% url 'meditation_seat_map_api' %}";
+        const DETAIL_URL_TPL = "{% url 'meditation_detail' uid=0 %}";
+
+        function detailUrl(uid) {
+            return DETAIL_URL_TPL.replace('/0/', '/' + uid + '/');
+        }
+
+        // 重绘座位：先全部清成空闲，再把接口返回的占用座位打上标记。
+        // 之所以"全量重绘"而不是增量：座位只有 17 个，全量重置更不容易残留脏状态。
+        function paintSeats(occupied) {
+            const taken = new Set((occupied || []).map(Number));
+            document.querySelectorAll('#selSeatMap .med-seat').forEach(function (el) {
+                const no = Number(el.dataset.seat);
+                el.classList.toggle('med-seat--taken', taken.has(no));
+            });
+        }
+
+        function renderBookings(list) {
+            const body = document.getElementById('bookingBody');
+            if (!list.length) {
+                body.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">该时段暂无预约</td></tr>';
+                return;
+            }
+            body.innerHTML = list.map(function (b) {
+                return '<tr style="cursor:pointer" onclick="window.location.href=\'' + detailUrl(b.uid) + '\'">'
+                    + '<th>' + b.uid + '</th>'
+                    + '<td>' + b.name + '</td>'
+                    + '<td>' + b.slot_label + '</td>'
+                    + '<td>' + b.seat + '号座</td>'
+                    + '<td>' + (MED_STATUS[b.status] || '—') + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function loadSeatMap() {
+            const date = document.getElementById('selDate').value;
+            const slot = document.getElementById('selSlot').value;
+            $.ajax({
+                url: SEAT_MAP_API,
+                method: 'GET',
+                data: {date: date, slot: slot},
+                dataType: 'JSON',
+                success: function (res) {
+                    if (!res.status) {
+                        alert(res.msg || '获取座位信息失败');
+                        return;
+                    }
+                    const d = res.data;
+                    paintSeats(d.occupied_seats);
+                    renderBookings(d.bookings);
+                    document.getElementById('statText').textContent =
+                        date + ' ' + $('#selSlot option:selected').text()
+                        + '　已占 ' + (d.occupied_seats || []).length + ' / 17';
+                },
+                error: function () {
+                    alert('请求失败，请检查网络或登录状态');
+                }
+            });
+        }
+
+        $(function () {
+            // 支持 ?date=&slot= 直达
+            const p = new URLSearchParams(location.search);
+            if (p.get('date')) document.getElementById('selDate').value = p.get('date');
+            if (p.get('slot') !== null) document.getElementById('selSlot').value = p.get('slot');
+
+            $('#selDate, #selSlot').on('change', loadSeatMap);
+            loadSeatMap();
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,7 @@
+# 部署用代码包，最终落在 Linux 服务器上；统一 LF，
+# 避免在 Windows 上克隆后被转成 CRLF 再拷到服务器。
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.ttf binary

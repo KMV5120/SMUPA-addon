@@ -1,0 +1,188 @@
+/* ==========================================================================
+   冥想室预约模块样式
+   配色对齐平台主题（#ED765E / #FEA858，见 layout 的 preloader 渐变）。
+   座位图与小程序端共用同一份坐标常量，故这里只负责"怎么画"，不管"画在哪"。
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   17 座选座图
+   容器按 seat.jpg 的 3:4 比例（1536x2048），座位用百分比绝对定位，
+   这样容器无论多大，相对位置都不变。
+   -------------------------------------------------------------------------- */
+.med-room {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    /* 3:4 比例 —— 用 padding 撑高，兼容性比 aspect-ratio 好 */
+    padding-bottom: 133.33%;
+    background: #fbfbfb;
+    border: 1px solid #e6e6e6;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.med-seat {
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    line-height: 26px;
+    text-align: center;
+    font-size: 13px;
+    border-radius: 50%;
+    border: 3px solid #333;
+    background: #fff;
+    color: #333;
+    box-sizing: border-box;
+    user-select: none;
+    /* 让圆心（而不是左上角）落在坐标点上 */
+    transform: translate(-50%, -50%);
+    transition: background-color .15s, color .15s, border-color .15s;
+}
+
+/* 已占用：置灰 + 禁止点击（选座页会叠加 cursor 规则） */
+.med-seat--taken {
+    background: #e9ecef;
+    color: #adb5bd;
+    border-color: #ced4da;
+}
+
+/* 当前选中 */
+.med-seat--on {
+    background: #ED765E;
+    border-color: #ED765E;
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(237, 118, 94, .25);
+}
+
+/* 门（左下角） */
+.med-door {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    color: #868e96;
+    border: 2px solid #adb5bd;
+    border-radius: 4px;
+    padding: 2px 6px;
+    background: #fff;
+}
+
+/* 可点击模式（填写页 / 选座总览） */
+.med-room--clickable .med-seat {
+    cursor: pointer;
+}
+
+.med-room--clickable .med-seat:not(.med-seat--taken):hover {
+    border-color: #ED765E;
+    color: #ED765E;
+}
+
+.med-room--clickable .med-seat--taken {
+    cursor: not-allowed;
+}
+
+/* 图例 */
+.med-legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    font-size: 13px;
+    color: #6c757d;
+}
+
+.med-legend i {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #333;
+    vertical-align: -2px;
+    margin-right: 4px;
+}
+
+.med-legend .lg-taken i {
+    background: #e9ecef;
+    border-color: #ced4da;
+}
+
+.med-legend .lg-on i {
+    background: #ED765E;
+    border-color: #ED765E;
+}
+
+/* --------------------------------------------------------------------------
+   周历（行 = 11 个时段档，与心理预约的"小时行"不同，见 views/meditation.py）
+   -------------------------------------------------------------------------- */
+.med-calendar {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.med-calendar th,
+.med-calendar td {
+    border: 1px solid #e9ecef;
+    padding: 4px 6px;
+    vertical-align: top;
+}
+
+.med-calendar thead th {
+    background: #f8f9fa;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.med-calendar .slot-col {
+    white-space: nowrap;
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    width: 110px;
+}
+
+.med-calendar td {
+    height: 34px;
+}
+
+.med-event {
+    display: block;
+    border-radius: 4px;
+    padding: 1px 4px;
+    margin-bottom: 2px;
+    font-size: 12px;
+    color: #fff;
+    cursor: pointer;
+    background: #ED765E;
+}
+
+.med-event.status-1 {
+    background: #FEA858;
+}
+
+.med-event.status-3 {
+    background: #adb5bd;
+}
+
+.med-calendar .is-today {
+    background: #fff5f2;
+}
+
+/* --------------------------------------------------------------------------
+   详情页补充
+   -------------------------------------------------------------------------- */
+.med-detail-seat {
+    max-width: 300px;
+}
+
+.med-tip {
+    font-size: 13px;
+    color: #6c757d;
+}
+
+.med-status-5 {
+    color: #6c757d;
+}

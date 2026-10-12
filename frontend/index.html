@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <title>冥想室预约</title>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="mb-app">
+
+    <!-- 顶部 -->
+    <header class="mb-head">
+        <button class="mb-back" id="btnBack" type="button" hidden aria-label="返回上一步">‹ 返回</button>
+        <div class="mb-head-title">冥想室预约</div>
+        <div class="mb-head-sub" id="headSub">加载中…</div>
+    </header>
+
+    <!-- 步骤指示 -->
+    <div class="mb-steps" id="stepBar">
+        <div class="mb-step" data-step="notice"><i>1</i><span>须知</span></div>
+        <div class="mb-step" data-step="date"><i>2</i><span>日期</span></div>
+        <div class="mb-step" data-step="slot"><i>3</i><span>时段</span></div>
+        <div class="mb-step" data-step="seat"><i>4</i><span>座位</span></div>
+        <div class="mb-step" data-step="form"><i>5</i><span>填资料</span></div>
+    </div>
+
+    <!-- 0. 加载态 -->
+    <section class="mb-panel" id="panel-loading">
+        <div class="mb-empty">加载中…</div>
+    </section>
+
+    <!-- 1. 须知 -->
+    <section class="mb-panel" id="panel-notice" hidden>
+        <div class="mb-card">
+            <h2 class="mb-h2" id="noticeTitle">冥想室使用须知与承诺</h2>
+            <div class="mb-richtext" id="noticeBody"></div>
+        </div>
+        <div class="mb-bar">
+            <div class="mb-hint" id="noticeHint"></div>
+            <button class="mb-btn" id="btnAgree" disabled>同意并继续</button>
+        </div>
+    </section>
+
+    <!-- 2. 选日期 -->
+    <section class="mb-panel" id="panel-date" hidden>
+        <div class="mb-tip">请选择使用日期（可预约未来两周）</div>
+        <div class="mb-dategrid" id="dateGrid"></div>
+    </section>
+
+    <!-- 3. 选时段 -->
+    <section class="mb-panel" id="panel-slot" hidden>
+        <div class="mb-tip">请选择时段 · 每档 40 分钟</div>
+        <div class="mb-list" id="slotList"></div>
+    </section>
+
+    <!-- 4. 选座位 -->
+    <section class="mb-panel" id="panel-seat" hidden>
+        <div class="mb-tip" id="seatTip">请选择座位</div>
+        <div class="mb-room" id="room">
+            <!-- 座位由 JS 按服务端下发的坐标渲染 -->
+            <div class="mb-door" id="roomDoor">门</div>
+        </div>
+        <div class="mb-legend">
+            <span><i class="dot"></i>空闲</span>
+            <span><i class="dot taken"></i>已占用</span>
+            <span><i class="dot on"></i>已选</span>
+        </div>
+        <div class="mb-bar">
+            <div class="mb-hint" id="seatHint">请点选座位</div>
+            <div class="mb-actions">
+                <button class="mb-btn mb-btn-ghost" id="btnBackSeat" type="button">上一步</button>
+                <button class="mb-btn" id="btnToForm" disabled>下一步</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. 填资料 -->
+    <section class="mb-panel" id="panel-form" hidden>
+        <div class="mb-card mb-summary" id="summary"></div>
+        <div class="mb-card">
+            <div class="mb-field">
+                <label>姓名 <em>*</em></label>
+                <input id="f_name" type="text" maxlength="32" placeholder="请输入姓名">
+                <div class="mb-err" id="e_name"></div>
+            </div>
+            <div class="mb-field">
+                <label>性别</label>
+                <select id="f_sex">
+                    <option value="0">女</option>
+                    <option value="1">男</option>
+                    <option value="2">其他或不便透露</option>
+                </select>
+            </div>
+            <div class="mb-field">
+                <label>学院</label>
+                <select id="f_college"></select>
+            </div>
+            <div class="mb-field">
+                <label>年级</label>
+                <select id="f_grade"></select>
+            </div>
+            <div class="mb-field">
+                <label>学号</label>
+                <input id="f_stu_code" type="text" maxlength="12" placeholder="选填">
+            </div>
+            <div class="mb-field">
+                <label>手机号 <em>*</em></label>
+                <input id="f_mobile_phone" type="tel" maxlength="11" placeholder="用于查询与改约，务必填准">
+                <div class="mb-err" id="e_mobile_phone"></div>
+            </div>
+            <div class="mb-field">
+                <label>邮箱</label>
+                <input id="f_email" type="email" placeholder="选填">
+            </div>
+            <div class="mb-field">
+                <label>备注 / 使用诉求</label>
+                <textarea id="f_note" maxlength="1024" placeholder="选填，如对设备或环境有特殊需求"></textarea>
+            </div>
+        </div>
+        <div class="mb-bar">
+            <div class="mb-hint" id="formHint"></div>
+            <div class="mb-actions">
+                <button class="mb-btn mb-btn-ghost" id="btnBackForm" type="button">上一步</button>
+                <button class="mb-btn" id="btnSubmit">提交预约</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. 结果 -->
+    <section class="mb-panel" id="panel-result" hidden>
+        <div class="mb-result">
+            <div class="mb-result-icon">✓</div>
+            <div class="mb-result-title" id="resultTitle">预约成功</div>
+        </div>
+        <div class="mb-card mb-uidcard">
+            <div class="mb-uidlabel">预约单号</div>
+            <div class="mb-uid" id="resultUid">—</div>
+            <div class="mb-uidtip">点击单号可复制，请牢记以便查验</div>
+        </div>
+        <div class="mb-card" id="resultInfo"></div>
+        <div class="mb-card mb-warn" id="resultWarn"></div>
+        <div class="mb-bar">
+            <button class="mb-btn mb-btn-plain" id="btnGoMy">查看我的预约</button>
+            <button class="mb-btn" id="btnRestart">再约一次</button>
+        </div>
+    </section>
+
+    <footer class="mb-foot">
+        <span>上海海事大学心理协会</span>
+    </footer>
+</div>
+
+<!-- 底部标签栏 -->
+<nav class="mb-tabbar">
+    <a href="index.html" class="mb-tab active">
+        <span class="mb-tab-icon">＋</span><span>预约</span>
+    </a>
+    <a href="my.html" class="mb-tab">
+        <span class="mb-tab-icon">☰</span><span>我的预约</span>
+    </a>
+</nav>
+
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

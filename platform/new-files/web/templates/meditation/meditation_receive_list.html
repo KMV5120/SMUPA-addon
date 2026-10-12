@@ -1,0 +1,31 @@
+{% extends 'layout/basic.html' %}
+{% load static %}
+
+{% block title %}冥想室待到访列表{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/reservation_list.css' %}">
+    <link rel="stylesheet" href="{% static 'css/meditation.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="container p-md-5">
+        <div class="box shadow">
+            <div class="box-title">
+                <h5><i class="fa fa-list-ul" aria-hidden="true"></i> 待到访列表</h5>
+                <span class="text-muted small">已受理、等待到访签到的单</span>
+            </div>
+            <div class="box-body p-3">
+                {% include 'meditation/_res_table.html' %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script>
+        $(function () {
+            $('[data-toggle="tooltip"]').tooltip()
+        });
+    </script>
+{% endblock %}

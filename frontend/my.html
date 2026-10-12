@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <title>我的冥想室预约</title>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="mb-app">
+    <header class="mb-head">
+        <div class="mb-head-title">我的预约</div>
+        <div class="mb-head-sub">凭预约时填写的手机号查询</div>
+    </header>
+
+    <div class="mb-search">
+        <input id="phone" type="tel" maxlength="11" inputmode="numeric"
+               placeholder="请输入手机号">
+        <button id="btnSearch">查询</button>
+    </div>
+
+    <div class="mb-panel">
+        <div id="tip" class="mb-tip"></div>
+        <div id="list"></div>
+    </div>
+
+    <footer class="mb-foot">
+        <span>上海海事大学心理协会</span>
+    </footer>
+</div>
+
+<!-- 底部标签栏 -->
+<nav class="mb-tabbar">
+    <a href="index.html" class="mb-tab">
+        <span class="mb-tab-icon">＋</span><span>预约</span>
+    </a>
+    <a href="my.html" class="mb-tab active">
+        <span class="mb-tab-icon">☰</span><span>我的预约</span>
+    </a>
+</nav>
+
+<script src="config.js"></script>
+<script src="assets/my.js"></script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+{% extends 'layout/basic.html' %}
+{% load static %}
+{% load meditation_tags %}
+
+{% block title %}冥想室预约代录{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/reservation.css' %}">
+    <link rel="stylesheet" href="{% static 'css/meditation.css' %}">
+{% endblock %}
+
+{% block content %}
+    {% med_slots as slots %}
+    {% med_limits as limits %}
+    <section class="p-md-5">
+        <div class="row justify-content-center">
+            <div id="reservationForm" class="shadow col-lg-10">
+                <div class="box-title d-flex justify-content-between align-items-center">
+                    <h5><i class="fa fa-leaf" aria-hidden="true"></i> 冥想室预约代录</h5>
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'meditation_list' %}">
+                        <i class="fa fa-arrow-left" aria-hidden="true"></i> 返回列表
+                    </a>
+                </div>
+
+                <div class="box-body p-4">
+                    <form id="MedForm">
+                        {% csrf_token %}
+
+                        <h6 class="text-muted">预约者信息</h6>
+                        <hr>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="id_name">姓名 <span class="text-danger">*</span></label>
+                                <input type="text" name="name" id="id_name" class="form-control" required>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="id_sex">性别 <span class="text-danger">*</span></label>
+                                <select name="sex" id="id_sex" class="form-select" required>
+                                    <option value="0">女</option>
+                                    <option value="1">男</option>
+                                    <option value="2">其他或不便透露</option>
+                                </select>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="id_stu_code">学号/工号</label>
+                                <input type="text" name="stu_code" id="id_stu_code" class="form-control" maxlength="12">
+                                <span class="error-msg"></span>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="id_college">学院 <span class="text-danger">*</span></label>
+                                <select name="college" id="id_college" class="form-select" required>
+                                    <option value="0">商船学院</option>
+                                    <option value="1">交通运输学院</option>
+                                    <option value="2">经济管理学院</option>
+                                    <option value="3">物流工程学院</option>
+                                    <option value="4">信息工程学院</option>
+                                    <option value="5">外国语学院</option>
+                                    <option value="6">理学院</option>
+                                    <option value="7">法学院</option>
+                                    <option value="8">海洋科学与工程学院</option>
+                                    <option value="9">物流科学与工程研究院</option>
+                                    <option value="11">马克思主义学院</option>
+                                    <option value="12">徐悲鸿艺术学院</option>
+                                    <option value="10" selected>其他</option>
+                                </select>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="id_grade">年级 <span class="text-danger">*</span></label>
+                                <select name="grade" id="id_grade" class="form-select" required>
+                                    <option value="0">预科</option>
+                                    <option value="1">大一</option>
+                                    <option value="2" selected>大二</option>
+                                    <option value="3">大三</option>
+                                    <option value="4">大四</option>
+                                    <option value="5">硕一</option>
+                                    <option value="6">硕二</option>
+                                    <option value="7">博一</option>
+                                    <option value="8">博二</option>
+                                    <option value="9">其他</option>
+                                </select>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="id_mobile_phone">手机号 <span class="text-danger">*</span></label>
+                                <input type="text" name="mobile_phone" id="id_mobile_phone" class="form-control"
+                                       maxlength="11" required>
+                                <span class="error-msg"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="id_email">邮箱</label>
+                                <input type="email" name="email" id="id_email" class="form-control">
+                                <span class="error-msg"></span>
+                            </div>
+                        </div>
+
+                        <h6 class="text-muted mt-4">使用时间与座位</h6>
+                        <hr>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="id_res_date">使用日期 <span class="text-danger">*</span></label>
+                                <input type="date" name="res_date" id="id_res_date" class="form-control"
+                                       min="{% now 'Y-m-d' %}" required>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="id_slot">时段 <span class="text-danger">*</span></label>
+                                <select name="slot" id="id_slot" class="form-select" required>
+                                    {% for sid, label in slots %}
+                                        <option value="{{ sid }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">已选座位</label>
+                                <input type="text" id="seatDisplay" class="form-control" readonly
+                                       placeholder="请在下方座位图中点击选择">
+                                {# 真正提交的座位号 #}
+                                <input type="hidden" name="seat" id="id_seat">
+                                <span class="error-msg"></span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-1">
+                            <div class="col-lg-6">
+                                {% include 'meditation/_seat_map.html' with seat_map_id='pickSeatMap' seat_clickable=True %}
+                                <div class="med-legend">
+                                    <span><i></i>空闲</span>
+                                    <span class="lg-taken"><i></i>已占用</span>
+                                    <span class="lg-on"><i></i>已选</span>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <label class="form-label" for="id_note">备注 / 使用诉求</label>
+                                <textarea name="note" id="id_note" class="form-control" rows="5"
+                                          maxlength="1024"
+                                          placeholder="可不填。如对设备、环境有特殊需求，请在此说明。"></textarea>
+                                <span class="error-msg"></span>
+
+                                <label class="form-label mt-3" for="id_staff">其他值班员</label>
+                                <input type="text" name="staff" id="id_staff" class="form-control"
+                                       placeholder="多人用空格分隔，可不填">
+                                <span class="error-msg"></span>
+                                <p class="med-tip mt-2 mb-0">
+                                    单次使用 {{ limits.max_use_minutes }} 分钟请以所选时段为准；
+                                    请提醒同学至少提前 {{ limits.min_ahead_minutes }} 分钟到 {% med_checkin_room %} 值班室现场签到，
+                                    再由值班员引导进入 {% med_room %} 冥想室。
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button type="button" id="submitBtn" class="btn btn-primary px-5">
+                                <i class="fa fa-check" aria-hidden="true"></i> 提交预约
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block js %}
+    <script src="{% static 'js/date-time-picker.min.js' %}"></script>
+    <script>
+        const SEAT_MAP_API = "{% url 'meditation_seat_map_api' %}";
+        let occupiedSeats = [];   // 当前日期+时段下的已占用座位
+
+        // 拉取占用座位并重绘。座位图是服务端渲染好的 17 个节点，
+        // 这里只切换 class，不重建 DOM —— 避免事件绑定被反复叠加。
+        function refreshSeatMap(keepSelection) {
+            const date = $('#id_res_date').val();
+            const slot = $('#id_slot').val();
+            if (!date) return;
+            $.ajax({
+                url: SEAT_MAP_API,
+                method: 'GET',
+                data: {date: date, slot: slot},
+                dataType: 'JSON',
+                success: function (res) {
+                    if (!res.status) { return; }
+                    occupiedSeats = (res.data.occupied_seats || []).map(Number);
+                    $('#pickSeatMap .med-seat').each(function () {
+                        const no = Number(this.dataset.seat);
+                        $(this).toggleClass('med-seat--taken', occupiedSeats.indexOf(no) !== -1);
+                    });
+                    // 若原先选的座位在新时段已被占，自动取消选择
+                    const cur = Number($('#id_seat').val());
+                    if (cur && occupiedSeats.indexOf(cur) !== -1) {
+                        $('#id_seat').val('');
+                        $('#seatDisplay').val('');
+                        $('#pickSeatMap .med-seat--on').removeClass('med-seat--on');
+                    }
+                }
+            });
+        }
+
+        // 选座：事件委托绑在容器上，只绑一次
+        function bindSeatPick() {
+            $('#pickSeatMap').on('click', '.med-seat', function () {
+                if ($(this).hasClass('med-seat--taken')) {
+                    return;  // 已占用不可选
+                }
+                const no = this.dataset.seat;
+                $('#pickSeatMap .med-seat--on').removeClass('med-seat--on');
+                $(this).addClass('med-seat--on');
+                $('#id_seat').val(no);
+                $('#seatDisplay').val(no + '号座');
+            });
+        }
+
+        function bindSubmit() {
+            $('#submitBtn').on('click', function () {
+                $('.error-msg').text('');
+                if (!$('#id_seat').val()) {
+                    $('#seatDisplay').next('.error-msg').text('请先在座位图中选择座位');
+                    return;
+                }
+                $.ajax({
+                    url: "{% url 'new_meditation' %}",
+                    type: "POST",
+                    data: $('#MedForm').serialize(),
+                    dataType: "JSON",
+                    success: function (res) {
+                        if (res.status) {
+                            alert('预约单已提交，单号：' + res.uid);
+                            window.location.href = "{% url 'meditation_list' %}";
+                        } else {
+                            // 错误回填：字段错误挂到对应 input 后的 .error-msg
+                            $.each(res.error, function (key, value) {
+                                const msg = $.isArray(value) ? value[0] : value;
+                                $('#id_' + key).next('.error-msg').text(msg);
+                            });
+                            if (res.error.__all__) {
+                                alert($.isArray(res.error.__all__) ? res.error.__all__[0] : res.error.__all__);
+                            }
+                        }
+                    },
+                    error: function () {
+                        alert('提交失败，请检查网络或登录状态');
+                    }
+                });
+            });
+        }
+
+        $(function () {
+            // 默认选今天
+            if (!$('#id_res_date').val()) {
+                $('#id_res_date').val(new Date().toISOString().slice(0, 10));
+            }
+            bindSeatPick();
+            bindSubmit();
+            $('#id_res_date, #id_slot').on('change', function () { refreshSeatMap(); });
+            refreshSeatMap();
+        });
+    </script>
+{% endblock %}

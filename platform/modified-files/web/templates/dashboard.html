@@ -1,0 +1,612 @@
+{% extends 'layout/basic.html' %}
+{% load static %}
+
+{% block title %}工作平台主页{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'plugin/mk-charts/mk_charts.css' %}"/>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+    </head>
+{% endblock %}
+
+{% block content %}
+    <div id="myToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true"
+         style="z-index: 99;position: fixed;left: 10px;top: 66px;">
+        <div class="toast-header">
+            <img src="{% static 'img/favicon.ico' %}" class="rounded me-2" style="width: 20px;height: 20px" alt="logo">
+            <strong class="me-auto">SMUPA</strong>
+            <small>小提示</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            【微笑心协 温暖你我 诚挚心协 快乐生活】亲爱的值班员，祝你值班顺利！有任何情况记得在值班群告诉大家哦！
+        </div>
+    </div>
+    <section id="number" class="px-2 px-lg-5 mt-4 text-center">
+        <div class="count-box shadow">
+            <h3 class="mb-5">预约处理</h3>
+            <div class="row text-center mb-4">
+                <div class="col-lg-2"><h5>处理进度</h5></div>
+                <div class="col-lg-10">
+                    <div class="progress">
+                        <div
+                                class="progress-bar progress-bar-striped progress-bar-animated"
+                                role="progressbar"
+                                aria-valuenow="{{ processing_progress }}"
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                                style="width: {{ processing_progress }}%"
+                        >
+                            {{ processing_progress }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-6 col-lg-3">
+                    <div class="number-box" onclick="javascript:window.location.href='{% url 'reservation_list' %}'">
+                        <div class="counter-single">
+                            <h3>{{ reservation_all_count }}</h3>
+                            <p>总计预约</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="number-box"
+                         onclick="javascript:window.location.href='{% url 'reservation_appoint_list' %}'">
+                        <div class="counter-single">
+                            <h3>{{ not_appointment_count }}</h3>
+                            <p>预约未完成</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="number-box"
+                         onclick="javascript:window.location.href='{% url 'reservation_receive_list' %}'">
+                        <div class="counter-single">
+                            <h3>{{ not_received_count }}</h3>
+                            <p>接待未完成</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="number-box">
+                        <div class="counter-single">
+                            <h3>{{ you_have_finished }}</h3>
+                            <p>你已累计处理</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {% comment %}
+        冥想室预约处理：与上方「预约处理」同级并列。
+        刻意复用完全相同的类名（.count-box.shadow / .counter-single / .number-box
+        / .progress），因此 CSS 零新增，视觉上与大区块完全一致。
+        必须用 comment 标签：Django 1.11 的 tag_re 无 re.DOTALL，多行 {# #} 不是注释。
+    {% endcomment %}
+    <section id="meditation" class="px-2 px-lg-5 mt-4 text-center">
+        <div class="count-box shadow">
+            <h3 class="mb-5">
+                <i class="fa fa-leaf" aria-hidden="true"></i> 冥想室预约处理
+            </h3>
+            <div class="row text-center mb-2">
+                <div class="col-lg-2"><h5>处理进度</h5></div>
+                <div class="col-lg-10">
+                    <div class="progress">
+                        <div
+                                class="progress-bar progress-bar-striped progress-bar-animated"
+                                role="progressbar"
+                                aria-valuenow="{{ med_processing_progress }}"
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                                style="width: {{ med_processing_progress }}%"
+                        >
+                            {{ med_processing_progress }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="text-muted small mb-4">今日已签到 {{ med_today_checkin }} 人次</p>
+            <div class="row g-4">
+                <div class="col-6 col-lg-3">
+                    <div class="number-box" onclick="javascript:window.location.href='{% url 'meditation_list' %}'">
+                        <div class="counter-single">
+                            <h3>{{ med_all_count }}</h3>
+                            <p>总计预约</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="number-box"
+                         onclick="javascript:window.location.href='{% url 'meditation_appoint_list' %}'">
+                        <div class="counter-single">
+                            <h3>{{ med_not_appointment_count }}</h3>
+                            <p>预约未完成</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="number-box"
+                         onclick="javascript:window.location.href='{% url 'meditation_receive_list' %}'">
+                        <div class="counter-single">
+                            <h3>{{ med_not_received_count }}</h3>
+                            <p>接待未完成</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="number-box"
+                         onclick="javascript:window.location.href='{% url 'meditation_selection' %}'">
+                        <div class="counter-single">
+                            <h3>{{ med_you_have_finished }}</h3>
+                            <p>你已累计处理</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a role="button" class="btn btn-sm btn-outline-secondary"
+                   href="{% url 'meditation_calendar' %}">
+                    <i class="fa fa-calendar" aria-hidden="true"></i> 预约周历
+                </a>
+                <a role="button" class="btn btn-sm btn-outline-secondary"
+                   href="{% url 'new_meditation' %}">
+                    <i class="fa fa-plus" aria-hidden="true"></i> 代录预约
+                </a>
+                <a role="button" class="btn btn-sm btn-outline-secondary"
+                   href="{% url 'med_operate_history' %}">
+                    <i class="fa fa-history" aria-hidden="true"></i> 操作历史
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="info" class="px-2 px-lg-5 mt-4">
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div id="notification" class="box shadow">
+                    <div class="box-title">
+                        <h5>通知列表</h5>
+                        <a href="{% url 'notification_list' %}">查看更多</a>
+                    </div>
+                    <div class="notification-list">
+
+                        {% for item in notify_list %}
+                            {% if item.priority == 1 %}
+                                <div
+                                        class="list-item priority-1"
+                                        onclick="javascript:window.location.href='{% url 'detail_notification' id=item.id %}'"
+                                >
+                                    <div class="item-left col-9 col-lg-8 col-xl-10">{{ item.title }}</div>
+                                    <div class="item-right col-3 col-lg-4 col-xl-2">{{ item.date }}</div>
+                                </div>
+                            {% elif item.priority == 2 %}
+                                <div
+                                        class="list-item priority-2"
+                                        onclick="javascript:window.location.href='{% url 'detail_notification' id=item.id %}'"
+                                >
+                                    <div class="item-left col-9 col-lg-8 col-xl-10">{{ item.title }}</div>
+                                    <div class="item-right col-3 col-lg-4 col-xl-2">{{ item.date }}</div>
+                                </div>
+                            {% elif item.priority == 3 %}
+                                <div
+                                        class="list-item priority-3"
+                                        onclick="javascript:window.location.href='{% url 'detail_notification' id=item.id %}'"
+                                >
+                                    <div class="item-left col-9 col-lg-8 col-xl-10">{{ item.title }}</div>
+                                    <div class="item-right col-3 col-lg-4 col-xl-2">{{ item.date }}</div>
+                                </div>
+                            {% elif item.priority == 4 %}
+                                <div
+                                        class="list-item priority-4"
+                                        onclick="javascript:window.location.href='{% url 'detail_notification' id=item.id %}'"
+                                >
+                                    <div class="item-left col-9 col-lg-8 col-xl-10">{{ item.title }}</div>
+                                    <div class="item-right col-3 col-lg-4 col-xl-2">{{ item.date }}</div>
+                                </div>
+                            {% else %}
+                                <div
+                                        class="list-item priority-0"
+                                        onclick="javascript:window.location.href='{% url 'detail_notification' id=item.id %}'"
+                                >
+                                    <div class="item-left col-9 col-lg-8 col-xl-10">{{ item.title }}</div>
+                                    <div class="item-right col-3 col-lg-4 col-xl-2">{{ item.date }}</div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div id="userinfo" class="box shadow">
+                    <div class="box-title">
+                        <h5>个人信息
+                            <div style="display: inline"
+                                 data-bs-toggle="modal"
+                                 data-bs-target="#editModal"
+                                 href="#">
+                                <i class="fa fa-pencil-square text-primary" aria-hidden="true"
+                                   title="编辑信息"></i>
+                            </div>
+                        </h5>
+                        <a href="{% url 'find_password' %}">更改密码</a>
+                    </div>
+                    <div class="box-body">
+                        <table class="table">
+                            <tbody>
+                            <tr>
+                                <th>姓名</th>
+                                <td>{{ request.STAFF.user.username }}</td>
+                            </tr>
+
+                            <tr>
+                                <th>学院班级</th>
+                                <td>{{ request.STAFF.user.get_college_display }}-{{ request.STAFF.user.class_name }}</td>
+                            </tr>
+
+                            <tr>
+                                <th>学号</th>
+                                <td>{{ request.STAFF.user.stu_code }}</td>
+                            </tr>
+                            <tr>
+                                <th>部门</th>
+                                <td>{{ request.STAFF.user.get_apartment_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>职务</th>
+                                <td>{{ request.STAFF.user.get_user_type_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>邮箱</th>
+                                <td>{{ request.STAFF.user.email }}</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="box shadow">
+                    <div class="box-body row">
+                        <div class="chart-box col-6">
+                            <div
+                                    class="mkCharts"
+                                    data-percent="{{ processing_progress }}"
+                                    data-color="green"
+                                    data-size="100"
+                            ></div>
+                            <span>完成预约比例</span>
+                        </div>
+                        <div class="chart-box col-6">
+                            <div
+                                    class="mkCharts"
+                                    data-percent="{{ risk_rate }}"
+                                    data-color="red"
+                                    data-size="100"
+                            ></div>
+                            <span>危机单比例</span>
+                        </div>
+                        <div class="chart-box col-6">
+                            <div
+                                    class="mkCharts"
+                                    data-percent="{{ not_appointment_rate }}"
+                                    data-color="#66ccff"
+                                    data-size="100"
+                            ></div>
+                            <span>未预约比例</span>
+                        </div>
+                        <div class="chart-box col-6">
+                            <div
+                                    class="mkCharts"
+                                    data-percent="{{ not_received_rate }}"
+                                    data-color="darkgoldenrod"
+                                    data-size="100"
+                            ></div>
+                            <span>未接待比例</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="data-visible" class="mb-5 px-2 px-lg-5">
+        <div class="box shadow">
+            <div class="box-title">
+                <h5>数据可视化</h5>
+                <button class="btn btn-primary btn-sm" onclick="init_data()">更新数据</button>
+            </div>
+            <div class="box-body">
+                <div class="mt-2 text-center"><p class="init-time"></p></div>
+                <div id="echart1" style="width: 100%; height: 500px"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- editModal -->
+    <div class="modal fade" id="editModal" tabindex="-1" role="dialog"
+         aria-labelledby="myModalLabel">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="myModalLabel">修改信息</h4>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="username">姓名</label>
+                            <input type="text" name="username" class="form-control"
+                                   value="{{ request.STAFF.user.username }}" id="id_username">
+                            <span class="error-msg"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_stu_code">学号</label>
+                            <input type="text" name="stu_code" class="form-control"
+                                   value="{{ request.STAFF.user.stu_code }}" id="id_stu_code"
+                                   maxlength="12">
+                            <span class="error-msg"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_college" class="form-label">学院：</label>
+                            <select name="college" id="id_college" class="form-select">
+                                <option value="" selected>当前为:{{ request.STAFF.user.get_college_display }}</option>
+                                <option value=0>商船学院</option>
+                                <option value=1>交通运输学院</option>
+                                <option value=2>经济管理学院</option>
+                                <option value=3>物流工程学院</option>
+                                <option value=4>信息工程学院</option>
+                                <option value=5>外国语学院</option>
+                                <option value=6>文理学院</option>
+                                <option value=7>法学院</option>
+                                <option value=8>海洋科学与工程学院</option>
+                                <option value=9>物流科学与工程研究院</option>
+                                <option value=11>马克思主义学院</option>
+                                <option value=12>徐悲鸿艺术学院</option>
+                                <option value=10>其他</option>
+                            </select>
+                            <span class="error-msg"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_class_name">专业班级</label>
+                            <input type="text" name="class_name" class="form-control"
+                                   value="{{ request.STAFF.user.class_name }}" id="id_class_name">
+                            <span class="error-msg"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_mobile_phone">手机号</label>
+                            <input type="text" name="mobile_phone" class="form-control"
+                                   value="{{ request.STAFF.user.mobile_phone }}"
+                                   id="id_mobile_phone"
+                                   maxlength="11"
+                            >
+                            <span class="error-msg"></span>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        取消
+                    </button>
+                    <button id="editBtn" type="button"
+                            class="btn btn-primary">提交
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="bindWXModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+         aria-labelledby="bindWXModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-md-down">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bindWXModalLabel">绑定微信</h5>
+                </div>
+                <div class="modal-body">
+                    <p style="text-indent: 2rem">
+                        同学你好！欢迎登录SMUPA工作平台！系统检测到您尚未绑定微信，为了避免错过重要信息，请完成绑定操作。
+                    </p>
+                    <div class="qrcode-container"
+                         style="height: 200px;width: 200px;border: 1px dotted #ccc;margin: 10px auto;">
+                        <img id="bind_qrcode" style="width: 100%;height: 100%;" src="{% static 'img/wechat.png' %}" alt="二维码"/>
+                    </div>
+                    <center>
+                        <button class="btn btn-primary" onclick="get_bind_qrcode()">点击获取绑定二维码</button>
+                    </center>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+
+{% block js %}
+
+    {% if not request.STAFF.user.wx_uid %}
+        <script>
+            let myModal = new bootstrap.Modal(document.getElementById('bindWXModal'))
+            myModal.show()
+
+            function get_bind_qrcode() {
+                let btn = event.target;
+                btn.setAttribute('disabled', true);
+                btn.innerText = '获取中...';
+                $.ajax({
+                    url: "{% url 'get_qrcode' pusher_id=0 %}",
+                    method: "GET",
+                    success: function (res) {
+                        if (res.status) {
+                            document.getElementById('bind_qrcode').src = res.url;
+                            btn.removeAttribute('disabled');
+                            btn.innerText = '我已微信扫码绑定完成';
+                            btn.onclick = ()=>{
+                                window.location.reload()
+                            };
+                        } else {
+                            alert('获取二维码失败！' + res.message);
+                            window.location.reload()
+                        }
+                    }
+                })
+            }
+        </script>
+    {% endif %}
+
+    <!--counter js-->
+    <script src="{% static 'js/waypoints.js' %}"></script>
+    <script src="{% static 'js/counterup.min.js' %}"></script>
+    <!--circle progress js-->
+    <script src="{% static 'js/circle-progress.min.js' %}"></script>
+    <!--main js-->
+    <script src="{% static 'js/custom.js' %}"></script>
+    <!--mk-charts-->
+    <script src="{% static 'plugin/mk-charts/mk_charts.js' %}"></script>
+    <!--echarts-->
+    <script src="{% static 'plugin/echarts/echarts.min.js' %}"></script>
+
+    <script>
+        var myChart = echarts.init(document.getElementById("echart1"));
+        $(function () {
+            init_data();
+            editBtn();
+        })
+
+        // 生成数据可视化图
+        function init_data() {
+            myChart.showLoading();
+            $.ajax({
+                url: "{% url 'init_data_visible' %}",
+                type: "GET",
+                dataType: "JSON",
+                success: function (res) {
+                    if (res.status) {
+                        $('.init-time').text('更新时间:' + res.time)
+                        var option = {
+                            legend: {
+                                top: "5%",
+                            },
+                            title: {
+                                text: '各学院来访人数及性别分布图',
+                                x: "center",
+                            },
+                            tooltip: {
+                                trigger: 'axis',
+                                confine: true // 防止移动端提示信息超出显示范围
+                            },
+                            dataZoom: [{
+                                type: 'slider',
+                            }],
+                            toolbox: {
+                                feature: {
+                                    saveAsImage: {
+                                        show: true,
+                                        pixelRatio: 5,
+                                        title: '保存为图片',
+                                        type: 'png',
+                                        lang: ['点击保存']
+                                    },
+                                },
+                            },
+                            dataset: res.dataset,
+                            // 声明一个 X 轴，类目轴（category）。默认情况下，类目轴对应到 dataset 第一列。
+                            xAxis: {
+                                type: "category",
+                                name: "学院名",
+                                axisLabel: {
+                                    rotate: 40,　　//文字倾斜角度
+                                }
+                            },
+                            // 声明一个 Y 轴，数值轴。
+                            yAxis: {
+                                name: '来访人数',
+                                type: 'value',
+                                scale: true,
+                            },
+                            // 声明多个 bar 系列，默认情况下，每个系列会自动对应到 dataset 的每一列。
+                            series: [
+                                {
+                                    type: "bar",
+                                    label: {
+                                        show: true,
+                                        position: 'top',
+                                    }
+                                },
+                                {
+                                    type: "bar",
+                                    label: {
+                                        show: true,
+                                        position: 'top',
+                                    }
+                                },
+                                {
+                                    type: "bar",
+                                    label: {
+                                        show: true,
+                                        position: 'top',
+                                    }
+                                },
+
+                            ],
+                        };
+                        myChart.hideLoading();
+                        // 使用刚指定的配置项和数据显示图表。
+                        myChart.setOption(option);
+
+                        $(window).resize(function () {
+                            myChart.resize();
+                        });
+                    } else {
+                        alert('数据初始化失败！')
+                    }
+                }
+            })
+        }
+
+        function editBtn() {
+            $('#editBtn').click(function () {
+                $('.error-msg').empty();
+
+                $.ajax({
+                    url: "{% url 'edit_userinfo' %}",
+                    type: "POST",
+                    data: $('#editForm').serialize() + '&',
+                    dataType: "JSON",
+                    success: function (res) {
+                        console.log(res);
+                        if (res.status) {
+                            location.reload()
+                        } else {
+                            $.each(res.error, function (key, value) {
+                                $("#id_" + key).next().text(value[0]);
+                            })
+                        }
+                    }
+                })
+
+            })
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            let element = document.getElementById("myToast");
+            let myToast = new bootstrap.Toast(element, {
+                delay: 10000
+            });
+            myToast.show()
+        });
+
+    </script>
+
+{% endblock %}

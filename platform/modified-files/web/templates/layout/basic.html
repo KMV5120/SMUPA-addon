@@ -1,0 +1,299 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    {% block meta %}{% endblock %}
+    <title>{% block title %}{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static 'plugin/bootstrap5/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'plugin/font-awesome/css/font-awesome.min.css' %}">
+    <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon"/>
+    <style>
+        .error-msg {
+            color: red;
+            position: absolute;
+            font-size: 13px;
+        }
+
+        /*
+---------------------------------------------
+preloader
+---------------------------------------------
+*/
+        #preloader {
+            overflow: hidden;
+            background-image: linear-gradient(135deg, #ED765E 0%, #FEA858 100%);
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            position: fixed;
+            z-index: 9999;
+        }
+
+        #preloader #loader {
+            position: absolute;
+            top: calc(50% - 20px);
+            left: calc(50% - 20px);
+        }
+
+        #preloader #loader #box {
+            width: 50px;
+            height: 50px;
+            background: #fff;
+            animation: animate 0.5s linear infinite;
+            position: absolute;
+            top: 0;
+            left: 0;
+            border-radius: 3px;
+        }
+
+        #preloader #loader #shadow {
+            width: 50px;
+            height: 5px;
+            background: #000;
+            opacity: 0.1;
+            position: absolute;
+            top: 59px;
+            left: 0;
+            border-radius: 50%;
+            animation: shadow 0.5s linear infinite;
+        }
+
+        #preloader #loader p {
+            position: absolute;
+            top: 65px;
+            left: -75px;
+            width: 250px;
+            font-weight: 200;
+            color: white;
+        }
+
+        @keyframes loader {
+            0% {
+                left: -100px;
+            }
+            100% {
+                left: 110%;
+            }
+        }
+
+        @keyframes animate {
+            17% {
+                border-bottom-right-radius: 3px;
+            }
+            25% {
+                transform: translateY(9px) rotate(22.5deg);
+            }
+            50% {
+                transform: translateY(18px) scale(1, 0.9) rotate(45deg);
+                border-bottom-right-radius: 40px;
+            }
+            75% {
+                transform: translateY(9px) rotate(67.5deg);
+            }
+            100% {
+                transform: translateY(0) rotate(90deg);
+            }
+        }
+
+        @keyframes shadow {
+            50% {
+                transform: scale(1.2, 1);
+            }
+        }
+
+    </style>
+    {% block css %}{% endblock %}
+</head>
+<body>
+<!-- ***** Preloader Start ***** -->
+<div id="preloader">
+    <div id="loader" class="spinner">
+        <p>微笑心协提醒您：要快乐哦～</p>
+        <div id="shadow"></div>
+        <div id="box"></div>
+    </div>
+</div>
+<!-- ***** Preloader End ***** -->
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+        <a class="navbar-brand" href="{% url 'index' %}">
+            <img src="{% static 'img/favicon.ico' %}" alt="SMUPA" width="auto" height="30px"/>
+            SMUPA｜工作平台</a
+        >
+        {% if request.STAFF.user %}
+            <button
+                    class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navmenu"
+            >
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navmenu">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a href="{% url 'dashboard' %}" class="nav-link"><i class="fa fa-desktop"
+                                                                            aria-hidden="true"></i> 平台主页</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a
+                                class="nav-link dropdown-toggle"
+                                href="#"
+                                id="res-menu"
+                                role="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                        >
+                            <i class="fa fa-bars" aria-hidden="true"></i> 预约菜单
+                        </a>
+                        <ul
+                                class="dropdown-menu"
+                                aria-labelledby="res-menu"
+                        >
+                            <li><a class="dropdown-item" href="{% url 'new_reservation' %}">预约填写 <i
+                                    class="fa fa-pencil-square-o" aria-hidden="true"></i></a></li>
+                            <li><a class="dropdown-item" href="{% url 'calendar' %}">预约日程 <i class="fa fa-calendar"
+                                                                                             aria-hidden="true"></i></a>
+                            </li>
+                            <li><a class="dropdown-item" href="{% url 'operate_history' %}">操作历史 <i
+                                    class="fa fa-history"
+                                    aria-hidden="true"></i></a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a
+                                class="nav-link dropdown-toggle"
+                                href="#"
+                                id="med-menu"
+                                role="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                        >
+                            <i class="fa fa-leaf" aria-hidden="true"></i> 冥想室
+                        </a>
+                        <ul
+                                class="dropdown-menu"
+                                aria-labelledby="med-menu"
+                        >
+                            <li><a class="dropdown-item" href="{% url 'new_meditation' %}">预约代录 <i
+                                    class="fa fa-pencil-square-o" aria-hidden="true"></i></a></li>
+                            <li><a class="dropdown-item" href="{% url 'meditation_list' %}">预约列表 <i
+                                    class="fa fa-list-ul" aria-hidden="true"></i></a></li>
+                            <li><a class="dropdown-item" href="{% url 'meditation_selection' %}">选座总览 <i
+                                    class="fa fa-th" aria-hidden="true"></i></a></li>
+                            <li><a class="dropdown-item" href="{% url 'meditation_calendar' %}">预约周历 <i
+                                    class="fa fa-calendar" aria-hidden="true"></i></a></li>
+                            <li><a class="dropdown-item" href="{% url 'med_operate_history' %}">操作历史 <i
+                                    class="fa fa-history" aria-hidden="true"></i></a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a
+                                class="nav-link dropdown-toggle"
+                                href="#"
+                                id="room-menu"
+                                role="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                        >
+                            <i class="fa fa-home" aria-hidden="true"></i>
+                            房间管理
+                        </a>
+                        <ul
+                                class="dropdown-menu"
+                                aria-labelledby="room-menu"
+                        >
+                            <li><a class="dropdown-item" href="{% url 'room_list' %}">房间情况 <i
+                                    class="fa fa-home" aria-hidden="true"></i></a></li>
+                            <li><a class="dropdown-item" href="{% url 'room_check_list' %}">房间审批 <i
+                                    class="fa fa-pencil-square-o" aria-hidden="true"></i></a></li>
+
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'data_display' %}" class="nav-link"><i class="fa fa-area-chart"
+                                                                               aria-hidden="true"></i> 数据大屏</a>
+                    </li>
+                    {% if request.STAFF.user.user_type >= 2 %}
+                        <li class="nav-item">
+                            <a href="{% url 'add_notification' %}" class="nav-link"><i class="fa fa-bullhorn"
+                                                                                       aria-hidden="true"></i> 通知发布</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'check_newmember' request_id=0 %}" class="nav-link"><i class="fa fa-user"
+                                                                                                   aria-hidden="true"></i>
+                                成员管理</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'login_monitor' %}" class="nav-link"><i class="fa fa-eye"></i> 登陆记录</a>
+                        </li>
+                    {% endif %}
+                    {% if request.STAFF.user.user_type >= 7 %}
+                        <li class="nav-item">
+                            <a href="{% url 'pusher_list' %}" class="nav-link"><i class="fa fa-bell"
+                                                                                   aria-hidden="true"></i> Pusher管理</a>
+                        </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a href="{% url 'beta_index' %}" class="nav-link">&beta; 实验室</a>
+                    </li>
+                </ul>
+
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a
+                                class="nav-link dropdown-toggle"
+                                href="#"
+                                id="navbarDropdownMenuLink"
+                                role="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                        >
+                            {{ request.STAFF.user }}
+                        </a>
+                        <ul
+                                class="dropdown-menu"
+                                aria-labelledby="navbarDropdownMenuLink"
+                        >
+                            <li><a class="dropdown-item" href="{% url 'find_password' %}">修改密码</a></li>
+                            <hr/>
+                            <li><a class="dropdown-item" href="{% url 'logout' %}">注销</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+</nav>
+
+{% block content %}{% endblock %}
+
+
+<script src="{% static 'js/jquery-3.4.1.min.js' %}"></script>
+<script src="{% static 'plugin/bootstrap5/js/bootstrap.bundle.min.js' %}"></script>
+<script>
+    // 页面加载动画
+    $(window).on('load', function () {
+        $("#preloader").animate({
+            'opacity': '0'
+        }, 600, function () {
+            setTimeout(function () {
+                $("#preloader").css("visibility", "hidden").fadeOut();
+            }, 300);
+        });
+    });
+</script>
+
+
+{% block js %}{% endblock %}
+</body>
+</html>

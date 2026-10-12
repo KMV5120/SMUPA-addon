@@ -1,0 +1,62 @@
+{% extends 'layout/basic.html' %}
+{% load static %}
+
+{% block title %}冥想室预约周历{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/reservation_list.css' %}">
+    <link rel="stylesheet" href="{% static 'css/meditation.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid p-md-4">
+        <div class="box shadow">
+            <div class="box-title d-flex justify-content-between align-items-center flex-wrap">
+                <h5 class="mb-0"><i class="fa fa-calendar" aria-hidden="true"></i> 本周冥想室预约</h5>
+                <span class="text-muted small">
+                    {{ week_days.0.2|date:"Y-m-d" }} ~ {{ week_days.6.2|date:"Y-m-d" }}
+                    ｜行 = 时段档（共 11 档），仅显示待受理 / 待到访的单
+                </span>
+            </div>
+            <div class="box-body p-3">
+                <table class="med-calendar">
+                    <thead>
+                    <tr>
+                        <th class="slot-col">时段</th>
+                        {% for wd, wname, wdate in week_days %}
+                            <th class="{% if wdate == today %}is-today{% endif %}">
+                                {{ wname }}<br>
+                                <small class="text-muted">{{ wdate|date:"m/d" }}</small>
+                            </th>
+                        {% endfor %}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for row in calendar_rows %}
+                        <tr>
+                            <td class="slot-col">{{ row.label }}</td>
+                            {% for cell in row.cells %}
+                                <td class="{% if cell.is_today %}is-today{% endif %}">
+                                    {% for ev in cell.events %}
+                                        <span class="med-event status-{{ ev.status }}"
+                                              title="{{ ev.name }}（{{ ev.seat }}号座）"
+                                              onclick="window.location.href='{% url 'meditation_detail' uid=ev.uid %}'">
+                                            {{ ev.uid }}·{{ ev.seat }}号座
+                                        </span>
+                                    {% endfor %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+                <div class="med-legend mt-3">
+                    <span><i style="background:#ED765E;border-color:#ED765E"></i>待受理</span>
+                    <span><i style="background:#FEA858;border-color:#FEA858"></i>待到访</span>
+                    <span class="med-tip">点击色块进入预约单详情</span>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

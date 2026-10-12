@@ -1,0 +1,789 @@
+{% extends 'layout/basic.html' %}
+{% load static %}
+{% load meditation_tags %}
+
+{% block title %}{{ uid }}号冥想室预约单{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/reservation_list.css' %}">
+    <link rel="stylesheet" href="{% static 'css/jindutiao.css' %}">
+    <link rel="stylesheet" href="{% static 'css/meditation.css' %}">
+{% endblock %}
+
+{% block content %}
+    {% med_slots as slots %}
+    {% med_limits as limits %}
+    {% med_seat_numbers as seat_numbers %}
+    {% with st=obj.res_form.first.status %}
+    <div class="container-fluid p-md-5 row g-2">
+        {# ---------------- 左：预约单主体 ---------------- #}
+        <div class="col-md-8">
+            <div class="box shadow">
+                <div class="box-title d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fa fa-leaf" aria-hidden="true"></i>
+                        {{ obj.uid }}号冥想室预约单｜状态：{{ obj.res_form.first.get_status_display }}
+                    </h5>
+                    <a role="button" class="btn btn-sm btn-outline-secondary"
+                       href="{% url 'meditation_list' %}">
+                        <i class="fa fa-arrow-left" aria-hidden="true"></i> 返回
+                    </a>
+                </div>
+
+                <div class="box-body p-3">
+                    <div class="starBox"></div>
+
+                    {# ---------- 操作按钮组 ---------- #}
+                    <div class="btn-box pb-2 pt-2">
+                        {% if st == 5 %}
+                            {# 未验证的小程序预约：只能验证或废弃 #}
+                            <a role="button" class="btn btn-sm btn-success"
+                               data-bs-toggle="modal" data-bs-target="#regModal">
+                                <i class="fa fa-check-circle" aria-hidden="true"></i> 通过验证
+                            </a>
+                            <a role="button" class="btn btn-sm btn-danger"
+                               data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                <i class="fa fa-trash" aria-hidden="true"></i> 废弃
+                            </a>
+                        {% else %}
+                            <a role="button" class="btn btn-sm btn-outline-dark"
+                               href="{% url 'print_meditation' uid=obj.uid %}">
+                                <i class="fa fa-print" aria-hidden="true"></i> 打印预约单
+                            </a>
+
+                            {% if st == 0 %}
+                                <a role="button" class="btn btn-sm btn-primary"
+                                   data-bs-toggle="modal" data-bs-target="#resModal">
+                                    <i class="fa fa-check" aria-hidden="true"></i> 受理预约
+                                </a>
+                            {% elif st == 1 %}
+                                <a role="button" class="btn btn-sm btn-success"
+                                   data-bs-toggle="modal" data-bs-target="#checkinModal">
+                                    <i class="fa fa-sign-in" aria-hidden="true"></i> 签到入室
+                                </a>
+                                <a role="button" class="btn btn-sm btn-primary"
+                                   data-bs-toggle="modal" data-bs-target="#finishModal">
+                                    <i class="fa fa-sign-out" aria-hidden="true"></i> 签退完成
+                                </a>
+                            {% elif st == 2 %}
+                                <a role="button" class="btn btn-sm btn-info"
+                                   data-bs-toggle="modal" data-bs-target="#renewalModal">
+                                    <i class="fa fa-refresh" aria-hidden="true"></i> 续约
+                                </a>
+                            {% endif %}
+
+                            {% if st == 0 or st == 1 %}
+                                <a role="button" class="btn btn-sm btn-warning"
+                                   data-bs-toggle="modal" data-bs-target="#changeModal">
+                                    <i class="fa fa-exchange" aria-hidden="true"></i> 改约
+                                </a>
+                                <a role="button" class="btn btn-sm btn-outline-warning"
+                                   data-bs-toggle="modal" data-bs-target="#clearModal">
+                                    <i class="fa fa-eraser" aria-hidden="true"></i> 清空
+                                </a>
+                            {% endif %}
+
+                            {% if st != 3 %}
+                                <a role="button" class="btn btn-sm btn-danger"
+                                   data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                    <i class="fa fa-trash" aria-hidden="true"></i> 废弃
+                                </a>
+                            {% endif %}
+
+                            <a role="button" class="btn btn-sm btn-secondary"
+                               data-bs-toggle="modal" data-bs-target="#commentModal">
+                                <i class="fa fa-comment" aria-hidden="true"></i> 备注
+                            </a>
+                            <a role="button" class="btn btn-sm btn-secondary"
+                               data-bs-toggle="modal" data-bs-target="#workModal">
+                                <i class="fa fa-tasks" aria-hidden="true"></i> 工作记录
+                            </a>
+                            <a role="button" class="btn btn-sm btn-secondary"
+                               data-bs-toggle="modal" data-bs-target="#shareModal">
+                                <i class="fa fa-share-alt" aria-hidden="true"></i> 分享
+                            </a>
+
+                            {% if st == 2 and not obj.res_form.first.invited %}
+                                <a role="button" class="btn btn-sm btn-outline-info"
+                                   data-bs-toggle="modal" data-bs-target="#surveyModal">
+                                    <i class="fa fa-envelope" aria-hidden="true"></i> 发送调查
+                                </a>
+                            {% elif st == 2 and obj.res_form.first.invited and not obj.res_form.first.is_survey_completed %}
+                                <a role="button" class="btn btn-sm btn-outline-secondary" disabled>
+                                    <i class="fa fa-envelope" aria-hidden="true"></i> 调查邀请已发送
+                                </a>
+                            {% elif st == 2 and obj.res_form.first.is_survey_completed %}
+                                <a role="button" class="btn btn-sm btn-outline-success" disabled>
+                                    <i class="fa fa-check" aria-hidden="true"></i> 调查已完成
+                                </a>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+
+                    {# ---------- 信息表 ---------- #}
+                    <table class="table table-bordered table-striped table-hover">
+                        <tr class="table-info"><th colspan="4">预约基本信息</th></tr>
+                        <tr>
+                            <th>编号</th><td>{{ obj.uid }}</td>
+                            <th>创建时间</th><td>{{ obj.create_datetime|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <th>填写员</th><td>{{ obj.res_form.first.filler|default_if_none:"—" }}</td>
+                            <th>处理员</th><td>{{ obj.res_form.first.processor|default_if_none:"—" }}</td>
+                        </tr>
+                        <tr>
+                            <th>预约来源</th><td>{{ obj.get_source_display }}</td>
+                            <th>须知阅读</th><td>{{ obj.read_seconds }} 秒</td>
+                        </tr>
+
+                        <tr class="table-info"><th colspan="4">使用信息</th></tr>
+                        <tr>
+                            <th>使用日期</th><td>{{ obj.res_date|date:"Y-m-d" }}</td>
+                            <th>时段</th><td>{{ obj.get_slot_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>座位</th><td>{{ obj.get_seat_display }}</td>
+                            <th>值班引导员</th><td>{{ obj.res_form.first.guide|default_if_none:"—" }}</td>
+                        </tr>
+                        <tr>
+                            <th>预约时间</th>
+                            <td colspan="3">{{ obj.res_form.first.res_datetime|default_if_none:"尚未受理" }}</td>
+                        </tr>
+
+                        <tr class="table-info"><th colspan="4">预约者信息</th></tr>
+                        <tr>
+                            <th>姓名</th><td>{{ obj.name }}</td>
+                            <th>性别</th><td>{{ obj.get_sex_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>学院</th><td>{{ obj.get_college_display }}</td>
+                            <th>年级</th><td>{{ obj.get_grade_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>学号/工号</th><td>{{ obj.stu_code|default_if_none:"—" }}</td>
+                            <th>手机号</th><td>{{ obj.mobile_phone }}</td>
+                        </tr>
+                        <tr>
+                            <th>邮箱</th><td colspan="3">{{ obj.email|default_if_none:"—" }}</td>
+                        </tr>
+
+                        <tr class="table-info"><th colspan="4">签到与签退</th></tr>
+                        <tr>
+                            <th>签到时间</th>
+                            <td>{{ obj.checkin_datetime|date:"Y-m-d H:i:s"|default_if_none:"未签到" }}</td>
+                            <th>签退时间</th>
+                            <td>{{ obj.checkout_datetime|date:"Y-m-d H:i:s"|default_if_none:"未签退" }}</td>
+                        </tr>
+                        <tr {% if obj.no_show or obj.overdue %}class="table-danger"{% endif %}>
+                            <th>是否爽约</th><td>{{ obj.no_show|yesno:"是,否" }}</td>
+                            <th>是否超时</th><td>{{ obj.overdue|yesno:"是,否" }}</td>
+                        </tr>
+
+                        <tr class="table-info"><th colspan="4">使用诉求 / 备注</th></tr>
+                        <tr>
+                            <td colspan="4">{{ obj.note|default_if_none:"—" }}</td>
+                        </tr>
+
+                        <tr class="table-info"><th colspan="4">处理备注</th></tr>
+                        <tr>
+                            <td colspan="4">{{ obj.res_form.first.comment|default_if_none:"—" }}</td>
+                        </tr>
+                    </table>
+
+                    {# ---------- 该时段座位占用 ---------- #}
+                    <div class="row">
+                        <div class="col-md-5">
+                            <h6 class="text-muted">
+                                {{ obj.res_date|date:"m月d日" }} {{ obj.get_slot_display }} 座位占用
+                            </h6>
+                            {% include 'meditation/_seat_map.html' with seat_map_id='detailSeatMap' occupied_seats=occupied_seats selected_seat=obj.seat %}
+                            <div class="med-legend">
+                                <span><i></i>空闲</span>
+                                <span class="lg-taken"><i></i>已占用</span>
+                                <span class="lg-on"><i></i>本单座位</span>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <h6 class="text-muted">操作提示</h6>
+                            <ul class="med-tip">
+                                <li>单档使用 {{ limits.max_use_minutes }} 分钟，以所选时段为准。</li>
+                                <li>请提醒同学至少提前 {{ limits.min_ahead_minutes }} 分钟到 {% med_checkin_room %} 值班室现场签到，再由值班员引导进入 {% med_room %} 冥想室。</li>
+                                <li>改约/取消须至少提前 {{ limits.reschedule_limit_minutes }} 分钟。</li>
+                                <li>同一日期同时段同一座位不可重复受理（提交时会二次校验）。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---------------- 右：操作记录 ---------------- #}
+        <div class="col-md-4">
+            <div class="box shadow">
+                <div class="box-title"><h5>操作记录</h5></div>
+                <div class="box-body p-3">
+                    <div class="list-group">
+                        {% for item in ope %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <strong>{{ item.operator.username }}</strong>
+                                    <small class="text-muted">{{ item.operate_datetime|date:"Y-m-d H:i" }}</small>
+                                </div>
+                                <small>{{ item.get_operation_display }}</small>
+                            </div>
+                        {% empty %}
+                            <div class="text-muted text-center py-3">暂无操作记录</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ==================== 弹窗区 ==================== #}
+    {% if st == 5 %}
+        {# ---- 通过验证 ---- #}
+        <div class="modal fade" id="regModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">通过验证</h5></div>
+                    <div class="modal-body">
+                        <p>验证后该预约单将进入「待受理」，请确认小程序提交的信息无误。</p>
+                        <form id="regForm">
+                            <label class="form-label" for="id_staff1_5">其他值班员</label>
+                            <input type="text" name="staff1" id="id_staff1_5" data-field="staff1"
+                                   class="form-control" placeholder="多人用空格分隔，可不填">
+                            <span class="error-msg"></span>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" id="regBtn" class="btn btn-success">确认通过</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {# ---- 废弃（未验证态）---- #}
+        <div class="modal fade" id="deleteModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">废弃预约单</h5></div>
+                    <div class="modal-body">
+                        <form id="deleteForm">
+                            <label class="form-label" for="id_comment_del">废弃原因</label>
+                            <textarea name="comment" id="id_comment_del" data-field="comment"
+                                      class="form-control" rows="3"></textarea>
+                            <span class="error-msg"></span>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" id="deleteBtn" class="btn btn-danger">确认废弃</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        {# ---- 受理 ---- #}
+        <div class="modal fade" id="resModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">受理预约</h5></div>
+                    <div class="modal-body">
+                        <p class="med-tip">确认使用日期、时段与座位；若小程序已选好，保持默认即可。</p>
+                        <form id="resForm">
+                            <div class="mb-2">
+                                <label class="form-label" for="id_guide_r">值班引导员</label>
+                                <input type="text" name="guide" id="id_guide_r" data-field="guide"
+                                       class="form-control"
+                                       value="{{ obj.res_form.first.guide|default_if_none:'' }}"
+                                       placeholder="负责引导入室的值班员">
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_res_date_r">使用日期</label>
+                                <input type="date" name="res_date" id="id_res_date_r" data-field="res_date"
+                                       class="form-control" value="{{ obj.res_date|date:'Y-m-d' }}" required>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_slot_r">时段</label>
+                                <select name="slot" id="id_slot_r" data-field="slot" class="form-select">
+                                    {% for sid, label in slots %}
+                                        <option value="{{ sid }}" {% if sid == obj.slot %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_seat_r">座位号</label>
+                                <select name="seat" id="id_seat_r" data-field="seat" class="form-select">
+                                    {% for n in seat_numbers %}
+                                        <option value="{{ n }}" {% if n == obj.seat %}selected{% endif %}>{{ n }}号座</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_staff_r">其他值班员</label>
+                                <input type="text" name="staff" id="id_staff_r" data-field="staff"
+                                       class="form-control" placeholder="多人用空格分隔，可不填">
+                                <span class="error-msg"></span>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" id="resBtn" class="btn btn-primary">确认受理</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---- 改约 ---- #}
+        <div class="modal fade" id="changeModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">改约处理</h5></div>
+                    <div class="modal-body">
+                        <form id="changeForm">
+                            <div class="mb-2">
+                                <label class="form-label" for="id_guide_c">值班引导员</label>
+                                <input type="text" name="guide" id="id_guide_c" data-field="guide"
+                                       class="form-control"
+                                       value="{{ obj.res_form.first.guide|default_if_none:'' }}">
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_res_date_c">改为使用日期</label>
+                                <input type="date" name="res_date" id="id_res_date_c" data-field="res_date"
+                                       class="form-control" value="{{ obj.res_date|date:'Y-m-d' }}" required>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_slot_c">改为时段</label>
+                                <select name="slot" id="id_slot_c" data-field="slot" class="form-select">
+                                    {% for sid, label in slots %}
+                                        <option value="{{ sid }}" {% if sid == obj.slot %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_seat_c">改为座位号</label>
+                                <select name="seat" id="id_seat_c" data-field="seat" class="form-select">
+                                    {% for n in seat_numbers %}
+                                        <option value="{{ n }}" {% if n == obj.seat %}selected{% endif %}>{{ n }}号座</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_staff_c">其他值班员</label>
+                                <input type="text" name="staff" id="id_staff_c" data-field="staff"
+                                       class="form-control" placeholder="多人用空格分隔，可不填">
+                                <span class="error-msg"></span>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" id="changeBtn" class="btn btn-warning">确认改约</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---- 续约 ---- #}
+        <div class="modal fade" id="renewalModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">续约处理</h5></div>
+                    <div class="modal-body">
+                        <p class="med-tip">将复制本单的预约者信息，生成一张新单。</p>
+                        <form id="renewalForm">
+                            <div class="mb-2">
+                                <label class="form-label" for="id_guide_n">值班引导员</label>
+                                <input type="text" name="guide" id="id_guide_n" data-field="guide"
+                                       class="form-control">
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_res_date_n">新使用日期</label>
+                                <input type="date" name="res_date" id="id_res_date_n" data-field="res_date"
+                                       class="form-control" required>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_slot_n">新时段</label>
+                                <select name="slot" id="id_slot_n" data-field="slot" class="form-select">
+                                    {% for sid, label in slots %}
+                                        <option value="{{ sid }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_seat_n">新座位号</label>
+                                <select name="seat" id="id_seat_n" data-field="seat" class="form-select">
+                                    {% for n in seat_numbers %}
+                                        <option value="{{ n }}">{{ n }}号座</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_staff_n">其他值班员</label>
+                                <input type="text" name="staff" id="id_staff_n" data-field="staff"
+                                       class="form-control" placeholder="多人用空格分隔，可不填">
+                                <span class="error-msg"></span>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" id="renewalBtn" class="btn btn-info">确认续约</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---- 清空 ---- #}
+        <div class="modal fade" id="clearModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">清空预约信息</h5></div>
+                    <div class="modal-body">
+                        <p>将清空受理结果（引导员、预约时间）与签到/签退记录，使预约单回到「待受理」。
+                            预约者信息与所选的日期/时段/座位会保留。</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" id="clearBtn" class="btn btn-warning">确认清空</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---- 废弃 ---- #}
+        <div class="modal fade" id="deleteModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">废弃预约单</h5></div>
+                    <div class="modal-body">
+                        <form id="deleteForm">
+                            <label class="form-label" for="id_comment_del">废弃原因</label>
+                            <textarea name="comment" id="id_comment_del" data-field="comment"
+                                      class="form-control" rows="3" required></textarea>
+                            <span class="error-msg"></span>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" id="deleteBtn" class="btn btn-danger">确认废弃</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---- 备注 ---- #}
+        <div class="modal fade" id="commentModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">添加备注</h5></div>
+                    <div class="modal-body">
+                        <form id="commentForm">
+                            <label class="form-label" for="id_comment">备注内容</label>
+                            <textarea name="comment" id="id_comment" data-field="comment"
+                                      class="form-control" rows="3" required></textarea>
+                            <span class="error-msg"></span>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" id="commentBtn" class="btn btn-primary">提交</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---- 工作记录 ---- #}
+        <div class="modal fade" id="workModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">添加工作记录</h5></div>
+                    <div class="modal-body">
+                        <form id="workForm">
+                            <div class="mb-2">
+                                <label class="form-label" for="id_staff_w">值班员姓名</label>
+                                <input type="text" name="staff" id="id_staff_w" data-field="staff"
+                                       class="form-control" placeholder="多人用空格分隔" required>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_operation_w">操作类型</label>
+                                <select name="operation" id="id_operation_w" data-field="operation"
+                                        class="form-select">
+                                    <option value="1">参与冥想室预约处理</option>
+                                    <option value="7">参与改约处理</option>
+                                </select>
+                                <span class="error-msg"></span>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" id="workBtn" class="btn btn-primary">提交</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---- 分享 ---- #}
+        <div class="modal fade" id="shareModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">预约信息分享</h5></div>
+                    <div class="modal-body">
+                        <form id="inviteForm">
+                            <div class="mb-2">
+                                <label class="form-label" for="id_period">有效期</label>
+                                <select name="period" id="id_period" data-field="period" class="form-select">
+                                    <option value="30">30分钟</option>
+                                    <option value="60">1小时</option>
+                                    <option value="300">5小时</option>
+                                    <option value="1440" selected>24小时</option>
+                                </select>
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="id_count">可访问次数</label>
+                                <input type="number" name="count" id="id_count" data-field="count"
+                                       class="form-control" value="3" min="1" max="10">
+                                <span class="error-msg"></span>
+                            </div>
+                        </form>
+                        <div class="input-group mt-3">
+                            <input type="text" id="inviteUrl" class="form-control" readonly
+                                   placeholder="点击右侧按钮生成链接">
+                            <button class="btn btn-outline-secondary" type="button" id="btnCopyUrl">复制</button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        <button type="button" id="btnGenInviteCode" class="btn btn-primary">生成分享链接</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---- 调查邀请 ---- #}
+        <div class="modal fade" id="surveyModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">发送体验反馈邀请</h5></div>
+                    <div class="modal-body">
+                        <p>将向预约者邮箱 <strong>{{ obj.email|default_if_none:"（未填写）" }}</strong>
+                            发送一份体验反馈问卷链接。</p>
+                        <p class="med-tip">同一预约单只能发送一次。</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" id="surveyBtn" class="btn btn-primary">发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---- 签到入室 ---- #}
+        <div class="modal fade" id="checkinModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">签到入室</h5></div>
+                    <div class="modal-body">
+                        <p>确认同学已在 {% med_checkin_room %} 值班室完成纸质签到，并已阅读《入门须知》、穿戴鞋套。</p>
+                        <form id="checkinForm">
+                            <label class="form-label" for="id_staff_ci">其他值班员</label>
+                            <input type="text" name="staff" id="id_staff_ci" data-field="staff6"
+                                   class="form-control" placeholder="多人用空格分隔，可不填">
+                            <span class="error-msg"></span>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" id="checkinBtn" class="btn btn-success">确认签到</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---- 签退完成 ---- #}
+        <div class="modal fade" id="finishModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">签退完成</h5></div>
+                    <div class="modal-body">
+                        <p>确认已完成纸质签退、清场并检查房间。</p>
+                        <form id="finishForm">
+                            <label class="form-label" for="id_staff_f">其他值班员</label>
+                            <input type="text" name="staff" id="id_staff_f" data-field="staff3"
+                                   class="form-control" placeholder="多人用空格分隔，可不填">
+                            <span class="error-msg"></span>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" id="finishBtn" class="btn btn-primary">确认签退</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    {% endwith %}
+{% endblock %}
+
+{% block js %}
+    <script src="{% static 'js/date-time-picker.min.js' %}"></script>
+    <script>
+        const DETAIL_URL = "{% url 'meditation_detail' uid=uid %}";
+        const SHARE_CODE_URL = "{% url 'med_share_code' res_id=obj.id %}";
+        const SURVEY_URL = "{% url 'send_meditation_survey' res_id=obj.id %}";
+
+        // ------------------------------------------------------------------
+        // 统一动作提交：把十个动作的 AJAX 样板收敛成一个函数。
+        // 心理预约模块为每个动作各写了一遍（约 30 行 × 10），这里只写一次。
+        // formSelector 为 null 表示该动作不携带表单（如"清空"）。
+        // ------------------------------------------------------------------
+        function postAction(method, formSelector, done) {
+            const payload = (formSelector ? $(formSelector).serialize() + '&' : '')
+                + $.param({method: method});
+            $(formSelector || '').find('.error-msg').text('');
+            $.ajax({
+                url: DETAIL_URL,
+                type: 'POST',
+                data: payload,
+                dataType: 'JSON',
+                success: function (res) {
+                    if (res.status) {
+                        done(res);
+                    } else {
+                        showErrors(formSelector, res.error);
+                    }
+                },
+                error: function () {
+                    alert('请求失败，请检查网络或登录状态');
+                }
+            });
+        }
+
+        // 错误回填：按 data-field 精确定位到该表单内的输入框，
+        // 避免多个弹窗里同名字段互相串（如三个弹窗都有 res_date）。
+        function showErrors(formSelector, error) {
+            if (!error) { alert('操作失败'); return; }
+            let alerted = false;
+            $.each(error, function (key, value) {
+                const msg = $.isArray(value) ? value[0] : value;
+                const $field = formSelector ? $(formSelector).find('[data-field="' + key + '"]') : $();
+                if ($field.length) {
+                    $field.next('.error-msg').text(msg);
+                } else if (!alerted) {
+                    alert(msg); alerted = true;
+                }
+            });
+        }
+
+        function reload() { location.reload(); }
+
+        $(function () {
+            {% if st == 5 %}
+                $('#regBtn').on('click', function () { postAction('reg', '#regForm', function () { reload(); }); });
+                $('#deleteBtn').on('click', function () { postAction('delete', '#deleteForm', function () { reload(); }); });
+            {% else %}
+                $('#commentBtn').on('click', function () { postAction('add_comment', '#commentForm', function () { reload(); }); });
+                $('#resBtn').on('click', function () { postAction('reservation', '#resForm', function () { reload(); }); });
+                $('#changeBtn').on('click', function () { postAction('change', '#changeForm', function () { reload(); }); });
+                $('#renewalBtn').on('click', function () {
+                    postAction('renewal', '#renewalForm', function (res) {
+                        alert(res.msg || '续约成功');
+                        location.href = "{% url 'meditation_detail' uid=0 %}".replace('/0/', '/' + res.new_uid + '/');
+                    });
+                });
+                $('#deleteBtn').on('click', function () { postAction('delete', '#deleteForm', function () { reload(); }); });
+                $('#clearBtn').on('click', function () { postAction('clear', null, function (res) { alert(res.msg || '已清空'); reload(); }); });
+                $('#workBtn').on('click', function () { postAction('work', '#workForm', function (res) { alert(res.msg || '已提交'); }); });
+                $('#checkinBtn').on('click', function () { postAction('checkin', '#checkinForm', function (res) { alert(res.msg || '签到成功'); reload(); }); });
+                $('#finishBtn').on('click', function () { postAction('finish', '#finishForm', function (res) { alert(res.msg || '已完成'); reload(); }); });
+
+                // 分享链接生成
+                $('#btnGenInviteCode').on('click', function () {
+                    $('#inviteForm .error-msg').text('');
+                    $.ajax({
+                        url: SHARE_CODE_URL, type: 'POST',
+                        data: $('#inviteForm').serialize(), dataType: 'JSON',
+                        success: function (res) {
+                            if (res.status) { $('#inviteUrl').val(res.data); }
+                            else { showErrors('#inviteForm', res.error); }
+                        }
+                    });
+                });
+                $('#btnCopyUrl').on('click', function () {
+                    const el = document.getElementById('inviteUrl');
+                    if (!el.value) { return; }
+                    el.select(); document.execCommand('copy'); alert('已复制到剪贴板');
+                });
+
+                // 调查邀请
+                $('#surveyBtn').on('click', function () {
+                    $.ajax({
+                        url: SURVEY_URL, type: 'GET', dataType: 'JSON',
+                        success: function (res) {
+                            alert(res.msg || (res.status ? '已发送' : '发送失败'));
+                            if (res.status) { location.reload(); }
+                        }
+                    });
+                });
+            {% endif %}
+        });
+
+        // ------------------------------------------------------------------
+        // 进度条（照搬心理预约的 StepContentFn，DOM 结构与 jindutiao.css 对齐）
+        // ------------------------------------------------------------------
+        function StepContentFn(tag, stepContent, status) {
+            const descriptionValue = stepContent.indexOf(",") === -1 ? $(stepContent).val() : stepContent;
+            if (!descriptionValue) { return; }
+            const desplit = descriptionValue.split(",");
+            let temp = -1;
+            let isActiveValue = "is_finish";
+            const applyStatus = $(status).val() ? $(status).val() : status;
+            let mainStep = "<div class='control_processSteps'>";
+            for (let i = 0; i < desplit.length; i++) {
+                const item = desplit[i].split(":");
+                if ($.trim(item[0]) === $.trim(applyStatus)) { temp = i; }
+                mainStep += "<div class='processStep'><div class='step_head'><div class='step_line'></div>"
+                    + "<div class='step_icon_inner'>" + (i + 1) + "</div></div>"
+                    + "<div class='step_main'><div class='step_title'>" + item[0] + "</div>"
+                    + "<div class='step_description'><div>操作者：" + item[1] + "</div>"
+                    + "<div>操作时间：" + item[2] + "</div>"
+                    + "<div>操作内容：" + item[3] + "</div></div></div></div>";
+            }
+            mainStep += "</div>";
+            $(tag).prepend(mainStep);
+
+            for (let i = 0; i < desplit.length; i++) {
+                if (temp >= i) {
+                    isActiveValue = "is_finish";
+                    $(".processStep").eq(i).find(".step_line").addClass("step_line_active");
+                } else if (temp === i - 1) {
+                    isActiveValue = "is_process";
+                } else if (temp < i - 1) {
+                    isActiveValue = "is_wait";
+                }
+                $(".processStep").eq(i).find(".step_head").addClass(isActiveValue);
+                $(".processStep").eq(i).find(".step_main>div").addClass(isActiveValue);
+            }
+        }
+
+        // escapejs：进度条串里含操作者姓名，用 escapejs 保证不会破坏 JS 字符串字面量
+        StepContentFn('.starBox', "{{ status_data|escapejs }}", "{{ now_status|escapejs }}");
+    </script>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% load static %}
+{% comment %}
+冥想室预约单表格 + 分页 —— 被三个列表页共用。
+心理预约模块把这段在三个模板里各抄了一遍（约 130 行 × 3），
+这里抽成 partial，改一处即可。上下文需要 res_list。
+
+注意：必须用 comment 标签而非 {# #}。Django 1.11 的 tag_re 无 re.DOTALL，
+多行 {# #} 不是注释，文字会泄漏进页面输出。
+{% endcomment %}
+<form class="d-flex mb-4">
+    <input class="form-control me-2" name="search" type="search" placeholder="Search"
+           aria-label="Search" data-toggle="tooltip" data-placement="top"
+           title="支持姓名、备注、引导员模糊检索，手机、邮箱、学号精准检索，空白返回全部">
+    <button class="btn btn-outline-primary" type="submit">Search</button>
+</form>
+<table class="table table-bordered table-responsive table-hover">
+    <thead>
+    <tr>
+        <th>编号</th>
+        <th>状态</th>
+        <th>使用日期</th>
+        <th>时段</th>
+        <th>座位</th>
+        <th>填写日期</th>
+        <th>填写员</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for item in res_list %}
+        {% with st=item.res_form.first.status %}
+            <tr class="{% if st == 1 %}table-warning{% elif st == 2 %}table-success{% elif st == 3 %}table-danger{% elif st == 5 %}table-secondary{% endif %}"
+                style="cursor: pointer;"
+                onclick="window.location.href='{% url 'meditation_detail' uid=item.uid %}'">
+                <th>{{ item.uid }}</th>
+                <th>{{ item.res_form.first.get_status_display }}</th>
+                <td>{{ item.res_date|date:"Y-m-d" }}</td>
+                <td>{{ item.get_slot_display }}</td>
+                <td>{{ item.get_seat_display }}</td>
+                <td>{{ item.create_datetime|date:"Y-m-d H:i" }}</td>
+                <td>{{ item.res_form.first.filler|default_if_none:"—" }}</td>
+            </tr>
+        {% endwith %}
+    {% empty %}
+        <tr>
+            <td colspan="7" class="text-center text-muted py-4">暂无记录</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<div class="page-box">
+    <nav aria-label="Page navigation">
+        <ul class="pagination pagination-sm">
+            {% if res_list.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ res_list.previous_page_number }}"
+                       aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>
+                </li>
+                {% if res_list.number >= 2 %}
+                    <li class="page-item"><a class="page-link" href="?page=1">首页</a></li>
+                {% endif %}
+                <li class="page-item">
+                    <a class="page-link"
+                       href="?page={{ res_list.previous_page_number }}">{{ res_list.previous_page_number }}</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span></a>
+                </li>
+            {% endif %}
+
+            <li class="page-item active"><a class="page-link" href="#">{{ res_list.number }}</a></li>
+
+            {% if res_list.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                       href="?page={{ res_list.next_page_number }}">{{ res_list.next_page_number }}</a>
+                </li>
+                {% if res_list.number != res_list.paginator.num_pages %}
+                    <li class="page-item"><a class="page-link"
+                                             href="?page={{ res_list.paginator.num_pages }}">尾页</a></li>
+                {% endif %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ res_list.next_page_number }}"
+                       aria-label="Next"><span aria-hidden="true">&raquo;</span></a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span></a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>

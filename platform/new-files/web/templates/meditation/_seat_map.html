@@ -1,0 +1,34 @@
+{% load meditation_tags %}
+{% comment %}
+17 座可视化选座图 —— 平台端四个页面共用（填写/详情/选座总览/打印）。
+
+可选上下文（用 include 的 with 传入）：
+  occupied_seats : 已占用座位号列表，如 [3,7,10]
+  selected_seat  : 当前选中的座位号（单选高亮）
+  seat_map_id    : 容器 id，同页出现多个图时用于区分
+  seat_clickable : 传 True 时给每个座位加 data 属性与 class，供 JS 绑定点击
+
+坐标全部来自 web/meditation_constants.py，与小程序端同一份数据源，
+因此两端画出来的座位图不会不一致。
+
+注意：这里必须用 comment 标签而不是 {# #}。
+Django 1.11 的 tag_re 没有 re.DOTALL，多行 {# #} 不会被视为注释，
+其中的文字会原样泄漏到页面输出里，甚至被当成真标签解析而报错。
+（DOTALL 是 Django 2.0 才加上的。）
+{% endcomment %}
+{% med_seats as seats %}
+{% med_door as door %}
+<div class="med-room {% if seat_clickable %}med-room--clickable{% endif %}"
+     id="{{ seat_map_id|default:'medSeatMap' }}">
+    {% for s in seats %}
+        <div class="med-seat
+                    {% if occupied_seats and s.no in occupied_seats %}med-seat--taken{% endif %}
+                    {% if selected_seat and s.no == selected_seat %}med-seat--on{% endif %}"
+             style="left: {{ s.x }}%; top: {{ s.y }}%;"
+             data-seat="{{ s.no }}"
+             title="{{ s.no }}号座">
+            {{ s.no }}
+        </div>
+    {% endfor %}
+    <div class="med-door" style="left: {{ door.x }}%; top: {{ door.y }}%;">门</div>
+</div>

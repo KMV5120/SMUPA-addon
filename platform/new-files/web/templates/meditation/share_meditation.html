@@ -1,0 +1,60 @@
+{% extends 'layout/basic.html' %}
+{% load static %}
+
+{% block title %}冥想室预约详情分享{% endblock %}
+
+{% block css %}
+    <style>
+        /* 分享页对匿名访问者开放，用一层不易拍屏复制的斜纹水印标注来源 */
+        body::before {
+            content: "{{ ip }} · {{ user_agent }}";
+            position: fixed;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-24deg);
+            font-size: 18px;
+            color: rgba(0, 0, 0, .06);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container p-md-5" style="position: relative; z-index: 1;">
+        <div class="box shadow" style="background:#fff;border-radius:8px;padding:24px;">
+            <div class="text-center mb-4">
+                <h4>冥想室预约单</h4>
+                <div class="text-muted small">
+                    单号 {{ obj.uid }}
+                    剩余可查看次数 {{ rest_count }} 次
+                    创建者 {{ staff.username }}
+                </div>
+            </div>
+
+            <table class="table table-bordered">
+                <tr><th style="width:140px">姓名</th><td>{{ obj.name }}</td>
+                    <th style="width:140px">状态</th>
+                    <td>{{ obj.res_form.first.get_status_display }}</td></tr>
+                <tr><th>使用日期</th><td>{{ obj.res_date|date:"Y-m-d" }}</td>
+                    <th>时段</th><td>{{ obj.get_slot_display }}</td></tr>
+                <tr><th>座位</th><td>{{ obj.get_seat_display }}</td>
+                    <th>值班引导员</th>
+                    <td>{{ obj.res_form.first.guide|default_if_none:"—" }}</td></tr>
+                <tr><th>签到时间</th>
+                    <td>{{ obj.checkin_datetime|date:"Y-m-d H:i"|default_if_none:"—" }}</td>
+                    <th>签退时间</th>
+                    <td>{{ obj.checkout_datetime|date:"Y-m-d H:i"|default_if_none:"—" }}</td></tr>
+                <tr><th>使用诉求</th>
+                    <td colspan="3">{{ obj.note|default_if_none:"—" }}</td></tr>
+                <tr><th>处理备注</th>
+                    <td colspan="3">{{ obj.res_form.first.comment|default_if_none:"—" }}</td></tr>
+            </table>
+
+            <p class="text-muted small mb-0">
+                本页面为临时分享，请勿转发。链接到期或访问次数用尽后自动失效。
+            </p>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends 'layout/basic.html' %}
+{% load static %}
+
+{% block title %}冥想室操作历史{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/operate_history.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="banner"></div>
+    <div class="main row g-0">
+        <div class="tab-nav col-sm-3">
+            <div class="tab-item active"><span><i class="fa fa-history"></i> 操作记录</span></div>
+            <div class="tab-item"><span><i class="fa fa-search"></i> 督导查班</span></div>
+        </div>
+        <div class="content col-sm-9">
+            <section class="active">
+                <div class="history"></div>
+                <div style="width: 100%;background-color: white;padding: 10px;">
+                    <div class="input-group mt-3 count-input">
+                        <input id="query-history" type="number" class="form-control" value="30"
+                               min="10" max="300" aria-describedby="query-history"/>
+                        <button class="btn btn-primary" type="button" id="BindHistory">
+                            要查询的“历史操作”条数
+                        </button>
+                    </div>
+                </div>
+            </section>
+            <section class="check">
+                <div>
+                    <div class="statistics row g-2">
+                        <div class="col-6">
+                            <div class="number-box" style="background-color: #4ca9df">
+                                <div id="appointment-today" class="number">0</div>
+                                <div class="text">今日受理</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="number-box" style="background-color: #64b4ad">
+                                <div id="reception-today" class="number">0</div>
+                                <div class="text">今日签到</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="number-box" style="background-color: #e69837">
+                                <div id="re-appointment-today" class="number">0</div>
+                                <div class="text">今日改约</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="number-box" style="background-color: #d3645f">
+                                <div id="cancel-today" class="number">0</div>
+                                <div class="text">今日废弃</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-list"></div>
+                </div>
+            </section>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script src="{% static 'js/countUp.js' %}"></script>
+    <script>
+        // 与 models.meditation_ope_choice 一一对应（照搬心理预约的写法，编号语义已改写）
+        const OPERATION_DICT = {
+            0: "完成冥想室预约填写", 1: "参与冥想室预约处理", 2: "完成冥想室预约受理",
+            3: "完成冥想室改约", 4: "完成签到接待", 5: "废弃冥想室预约", 6: "添加备注",
+            7: "参与改约处理", 8: "清空预约信息", 9: "验证小程序预约", 10: "完成续约",
+            11: "完成签退", 12: "标记爽约", 13: "标记超时"
+        };
+        const OPERATION_BADGE = {
+            0: "bg-dark", 1: "bg-light text-dark", 2: "bg-primary", 3: "bg-warning text-dark",
+            4: "bg-success", 5: "bg-danger", 6: "bg-info text-dark", 7: "bg-light text-dark",
+            8: "bg-secondary", 9: "bg-secondary text-dark", 10: "bg-primary text-dark",
+            11: "bg-success text-dark", 12: "bg-danger text-dark", 13: "bg-danger"
+        };
+
+        const HISTORY_API = "{% url 'med_api_history' %}";
+        const STATS_API = "{% url 'med_api_check_statistics' %}";
+        const DETAIL_BASE = "{% url 'meditation_detail' uid=0 %}";
+
+        function detailUrl(uid) {
+            return DETAIL_BASE.replace('/0/', '/' + uid + '/');
+        }
+
+        function itemHtml(item) {
+            return '<div class="history-item" onclick="window.location.href=\'' + detailUrl(item.uid) + '\'">'
+                + '<div class="left"><span class="res-id">' + item.uid + '</span></div>'
+                + '<div class="right"><div class="top">'
+                + '<span class="time"><i class="fa fa-clock-o"></i> ' + item.time + '</span></div>'
+                + '<div class="bottom"><span class="operator"><i class="fa fa-user-o"></i> '
+                + item.operator + '</span>'
+                + '<span class="badge rounded-pill ' + (OPERATION_BADGE[item.operation] || 'bg-secondary') + '">'
+                + (OPERATION_DICT[item.operation] || '未知操作') + '</span></div></div></div>';
+        }
+
+        function loadingHtml() {
+            return '<div id="dataloading" style="display:flex;flex-direction:column;align-items:center;'
+                + 'justify-content:center"><div class="spinner-border text-primary"></div>加载中</div>';
+        }
+
+        function loadHistory(count) {
+            document.querySelector('.history').innerHTML = loadingHtml();
+            $.ajax({
+                url: HISTORY_API, method: 'GET', data: {count: count}, dataType: 'JSON',
+                success: function (res) {
+                    $('#dataloading').remove();
+                    if (!res.status) { alert(res.error || '加载失败'); return; }
+                    $('.history').append(res.data.map(itemHtml).join(''));
+                }
+            });
+        }
+
+        function loadStats() {
+            const options = {useEasing: true, useGrouping: true, separator: ',', decimal: '.'};
+            $.ajax({
+                url: STATS_API, method: 'GET', dataType: 'JSON',
+                success: function (res) {
+                    if (!res.status) { return; }
+                    res.data.forEach(function (item) {
+                        new CountUp(item.name, 0, item.num, 0, 2.5, options).start();
+                    });
+                }
+            });
+        }
+
+        function loadCheckList() {
+            document.querySelector('.history-list').innerHTML = loadingHtml();
+            $.ajax({
+                url: HISTORY_API, method: 'GET', dataType: 'JSON',
+                success: function (res) {
+                    $('#dataloading').remove();
+                    if (!res.status) { return; }
+                    $('.history-list').append(res.data.map(itemHtml).join(''));
+                }
+            });
+        }
+
+        function init_page() {
+            const tabs = document.querySelectorAll('.tab-item');
+            const sections = document.querySelectorAll('.content section');
+            tabs.forEach(function (item, index) {
+                item.addEventListener('click', function () {
+                    tabs.forEach(function (t) { t.classList.remove('active'); });
+                    sections.forEach(function (s) { s.classList.remove('active'); });
+                    item.classList.add('active');
+                    sections[index].classList.add('active');
+                    if (index === 0) { loadHistory(30); }
+                    if (index === 1) { loadStats(); loadCheckList(); }
+                });
+            });
+            document.querySelector('#BindHistory').addEventListener('click', function () {
+                const c = parseInt(document.querySelector('#query-history').value) || 30;
+                loadHistory(c);
+            });
+        }
+
+        window.onload = function () {
+            init_page();
+            loadHistory(30);
+        };
+    </script>
+{% endblock %}
