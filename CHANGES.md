@@ -16,13 +16,19 @@
 
 ```ini
 # .env
-MEDITATION_CORS_ORIGINS=https://<开发方的子域名>
+MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
 ```
 
 - 填**页面所在的域名**（不是本平台域名），带协议、不带结尾斜杠
 - 多个用英文逗号分隔
 - **留空 = 不开放**（默认安全）
 - 改完要**重启服务**
+
+> ⚠️ **必须一字不差**：中间件是 `origin in allowed` 的**精确字符串匹配**，
+> 配置解析只做 `strip()`（去空白，**不去尾斜杠**）。
+> 写成 `https://kmv-learning-assistant.xyz/`（多尾斜杠）或带路径 `/meditation/`
+> 都会**静默不匹配** —— 页面照开、提交照样跨域失败，且不报任何配置错。
+> 浏览器发的 `Origin` 头是 `scheme://host`，不含路径，填域名根即可。
 
 > 这是本次交付里唯一一个「忘了配就整个功能不可用」的配置项。
 

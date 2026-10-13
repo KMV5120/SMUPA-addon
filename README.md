@@ -5,31 +5,30 @@
 
 ---
 
-## ⚠️ 先看这里：本仓库只装**平台侧**
+## ⚠️ 先看这里：这个仓库分两块，给两个人
 
-**同学用的预约页面不在 SMUPA 平台上**，也不在这个仓库里 ——
-它托管在另一个域名上（独立仓库 `meditation-web`），通过接口把数据发到 SMUPA 平台。
-两者是**前后端分离、部署在不同平台上**的两份东西，所以分仓管理：
+因为**同学预约页面不在 SMUPA 平台上** —— 它托管在另一个域名上，
+通过接口把数据发到 SMUPA 平台。所以是**前后端分离**的两份东西：
 
 ```
 同学浏览器
-   │ 打开 https://<开发方子域名>/          ← 前端静态包：另一个仓库，开发方托管
+   │ 打开 https://kmv-learning-assistant.xyz/meditation/     ← frontend/ 部署在这（开发方托管）
    │ 页面内发请求，跨域
    ▼
-SMUPA 平台 https://<平台域名>/meditation/api/*   ← 本仓库，管理员部署
+SMUPA 平台 https://<平台域名>/meditation/api/*   ← platform/ 部署在这（管理员部署）
                  ▲
-        需要在响应里声明「允许 <开发方子域名> 调我」
+        需要在响应里声明「允许 https://kmv-learning-assistant.xyz 调我」
 ```
 
-| 东西 | 在哪 | 给谁 | 怎么用 |
+| 目录 | 给谁 | 是什么 | 怎么用 |
 | --- | --- | --- | --- |
-| 前端静态包（HTML/CSS/JS） | **另一个仓库** `meditation-web` | 开发方 | 传到自己子域名站点 |
-| **`platform/`** | **本仓库** | **服务器管理员** | 按 `CHANGES.md` 部署 |
+| **`frontend/`** | **开发方（你自己）** | 纯静态页面（HTML/CSS/JS） | 传到已上线的 `/meditation/` 站点 |
+| **`platform/`** | **服务器管理员** | SMUPA 平台侧的代码改动 | 按 `CHANGES.md` 部署 |
 
 **两边都做完，业务才跑通。** 缺任一边：
 
 - 只部署 `platform/` → 平台上什么都没有，同学没地方预约
-- 只部署前端 → 页面能打开，但一提交就报跨域错误
+- 只部署 `frontend/` → 页面能打开，但一提交就报跨域错误
 
 ### 文档索引
 
@@ -37,14 +36,27 @@ SMUPA 平台 https://<平台域名>/meditation/api/*   ← 本仓库，管理员
 | --- | --- | --- |
 | **`API.md`** | **开发方** | **8 个接口的完整规格**（请求/响应/错误码/鉴权/curl 示例） |
 | `CHANGES.md` | 管理员 | 既有文件的逐项改动（含本次新增的咨询预约周历，见第 10 节） |
+| `frontend/README.md` | 开发方 | 用现成静态包的话，怎么部署 |
 | `tests/` | 管理员 | 端到端集成测试（13 组 / 155 条断言），见 `tests/README.md` |
-
-> **开发方如果已经自建了预约页面**，只需读 `API.md` 即可 ——
-> 你那边唯一的配置项是 **平台接口地址**：`https://<平台域名>/meditation/api`。
 
 ---
 
-## 一、`platform/` —— 给服务器管理员
+## 一、`frontend/` —— 给开发方
+
+**你的预约页已经上线了**：<https://kmv-learning-assistant.xyz/meditation/>
+
+所以这份静态包**不是必须部署**的 —— 它现在的作用是**对接参照**：
+里面的请求写法与 `API.md` 的接口规格严格一致，可对着比对。
+若要重新部署，详见 [`frontend/README.md`](frontend/README.md)，三步：
+
+1. 改 `frontend/config.js` 里的 `API_BASE` 为 SMUPA 平台地址
+2. 确认管理员已把 `https://kmv-learning-assistant.xyz`
+   加进平台的 `MEDITATION_CORS_ORIGINS`（见下节 ⚠️ 第 2 条）
+3. 把 6 个文件传到 `kmv-learning-assistant.xyz/meditation/`
+
+---
+
+## 二、`platform/` —— 给服务器管理员
 
 **部署步骤、逐文件改动说明，全在 [`CHANGES.md`](CHANGES.md)。**
 这里只给要点。
@@ -65,10 +77,19 @@ platform/
 
 2. **一定要配 `MEDITATION_CORS_ORIGINS`，否则同学提交不了**
    ```ini
-   MEDITATION_CORS_ORIGINS=https://<开发方的子域名>
+   MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
    ```
    不配的后果：页面能打开，但一点提交就跨域失败。
    **这是本次交付里唯一一个"忘了配就整个功能不可用"的配置项。**
+
+   > ⚠️ **必须一字不差**：中间件是 `origin in allowed` 的**精确字符串匹配**，
+   > 而配置解析只做 `strip()`（去空白，**不去尾斜杠**）。
+   > 写成 `https://kmv-learning-assistant.xyz/`（多一个尾斜杠）
+   > 或带上路径 `/meditation/` **都会静默不匹配** —— 页面照开，提交照样跨域失败，
+   > **且不报任何配置错**，极难排查。
+   >
+   > 浏览器发的 `Origin` 头是 `scheme://host`，**不含路径**，
+   > 所以这里填域名根即可，不要带 `/meditation/`。
 
 3. **迁移文件不随包提供，请在服务器自行生成**
    ```bash
@@ -85,19 +106,20 @@ platform/
    与冥想室区块那排对称；点「预约周历」应打开 `/consultation/calendar/`
 3. 顶部导航出现「冥想室」下拉
 4. `/admin/` 里能看到 5 张冥想室表
-5. 跨域自检（把 `<开发方域名>` 换成实际值）：
+5. 跨域自检（把 `<平台域名>` 换成实际值）：
    ```bash
    # 预检应返回 204 并带 Access-Control-Allow-Origin
    curl -s -D - -o /dev/null -X OPTIONS \
      "https://<平台域名>/meditation/api/submit/" \
-     -H "Origin: https://<开发方域名>" \
+     -H "Origin: https://kmv-learning-assistant.xyz" \
      -H "Access-Control-Request-Method: POST" | grep -i access-control
    ```
-6. 让开发方打开他的页面，走完一遍预约，平台上应出现一条「未验证预约」
+6. 打开 <https://kmv-learning-assistant.xyz/meditation/> 走完一遍预约，
+   平台上应出现一条「未验证预约」
 
 ---
 
-## 二、这个模块做了什么
+## 三、这个模块做了什么
 
 **对同学**（开发方页面）
 按《须知与承诺》（满 5 秒）→ 选日期 → 选时段 → **17 座可视化选座** → 填资料 →
@@ -110,7 +132,7 @@ platform/
 
 ---
 
-## 三、几个设计决定（接手者可能关心）
+## 四、几个设计决定（接手者可能关心）
 
 ### 为什么冥想室**不接** `Res_Room` 房间审批
 
@@ -140,7 +162,7 @@ platform/
 
 ---
 
-## 四、环境要求
+## 五、环境要求
 
 与原平台一致：**Django 1.11.28 / Python 3.8+**。
 
@@ -153,7 +175,7 @@ platform/
 
 ---
 
-## 五、已知的后续项
+## 六、已知的后续项
 
 | 项 | 状态 |
 | --- | --- |

@@ -23,11 +23,15 @@ SMUPA 平台接口地址 = https://<平台域名>/meditation/api
 **⚠️ 另外还必须让管理员在 SMUPA 平台的 `.env` 里加上你的域名：**
 
 ```ini
-MEDITATION_CORS_ORIGINS=https://<你页面的域名>
+MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
 ```
 
 **不加的话，浏览器会拦住请求 —— 页面能打开，但一点提交就失败。**
 这是唯一一个「不配就完全不可用」的外部依赖。
+
+> 注意**不要**写成 `https://kmv-learning-assistant.xyz/`（多尾斜杠）
+> 或带上路径 `/meditation/`：平台侧是精确字符串匹配，多一个字符就静默失效，
+> 且不报任何错。浏览器发的 `Origin` 头只有 `scheme://host`，不含路径。
 
 ---
 
