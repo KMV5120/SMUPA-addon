@@ -15,7 +15,7 @@
    │ 打开 https://kmv-learning-assistant.xyz/meditation/     ← frontend/ 部署在这（开发方托管）
    │ 页面内发请求，跨域
    ▼
-SMUPA 平台 https://<平台域名>/meditation/api/*   ← platform/ 部署在这（管理员部署）
+SMUPA 平台 https://gzpt.smupa.top/meditation/api/*   ← platform/ 部署在这（管理员部署）
                  ▲
         需要在响应里声明「允许 https://kmv-learning-assistant.xyz 调我」
 ```
@@ -61,7 +61,7 @@ SMUPA 平台 https://<平台域名>/meditation/api/*   ← platform/ 部署在�
 ### ⚠️ 有一条**已废弃的旧方案**，别照做
 
 早期曾规划过「把预约页直接挂在 SMUPA 平台上、入口是
-`https://<平台域名>/meditation/booking/`」。
+`https://gzpt.smupa.top/meditation/booking/`」。
 **这个方案后来废弃了** —— 现在的形态是**页面托管在你们自己的域名上**（上面的地址），
 平台侧**没有**任何对外预约页面，`/meditation/booking/` 这个 URL **不存在**。
 
@@ -120,11 +120,11 @@ platform/
    与冥想室区块那排对称；点「预约周历」应打开 `/consultation/calendar/`
 3. 顶部导航出现「冥想室」下拉
 4. `/admin/` 里能看到 5 张冥想室表
-5. 跨域自检（把 `<平台域名>` 换成实际值）：
+5. 跨域自检（平台域名已按实际值填好，直接复制即可）：
    ```bash
    # 预检应返回 204 并带 Access-Control-Allow-Origin
    curl -s -D - -o /dev/null -X OPTIONS \
-     "https://<平台域名>/meditation/api/submit/" \
+     "https://gzpt.smupa.top/meditation/api/submit/" \
      -H "Origin: https://kmv-learning-assistant.xyz" \
      -H "Access-Control-Request-Method: POST" | grep -i access-control
    ```
@@ -228,6 +228,6 @@ platform/
 
 | # | 事项 | 详见 |
 | --- | --- | --- |
-| □ 10 | 浏览器打开 `https://<平台域名>/meditation/api/layout/`，能看到 JSON 即接口通 | `API.md` 调试建议 |
+| □ 10 | 浏览器打开 `https://gzpt.smupa.top/meditation/api/layout/`，能看到 JSON 即接口通 | `API.md` 调试建议 |
 | □ 11 | 真实提交一单，平台上应出现一条「未验证预约」 | README 验收节 |
 | □ 12 | 值班员走完 验证 → 受理 → 签到 → 签退，同学侧再查应显示「已完成」 | `tests/` |

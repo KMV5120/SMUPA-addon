@@ -8,19 +8,20 @@
 
 ## 一、怎么用（3 步）
 
-### 1. 改 `config.js`
+### 1. 确认 `config.js`
 
-整个包里**只有这一个文件需要改**：
+**已经按管理员提供的平台地址填好了，通常不用再动。**
+只有在平台换域名时才需要改（整个包里唯一需要改的文件就是它）：
 
 ```js
 window.MED_CONFIG = {
-  API_BASE: 'https://<SMUPA平台域名>/meditation/api',
+  API_BASE: 'https://gzpt.smupa.top/meditation/api',   // ← 已填好
   ...
 };
 ```
 
 - 必须是 **https**
-- 结尾**不要**带斜杠
+- 结尾**不要**带斜杠（程序会自动去掉多余的 `/`）
 - 结尾必须是 `/meditation/api`
 
 > 没改的话页面会直接提示「尚未配置接口地址」，不会让同学白填半天。

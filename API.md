@@ -11,7 +11,7 @@
 你那边只需要填**一个字段**：
 
 ```
-SMUPA 平台接口地址 = https://<平台域名>/meditation/api
+SMUPA 平台接口地址 = https://gzpt.smupa.top/meditation/api
 ```
 
 - 必须是 **https**
@@ -329,7 +329,7 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
 ## 调试建议
 
 - `layout` / `notice` / `slots` **免鉴权且支持 GET**，可直接用浏览器打开验证连通性：
-  `https://<平台域名>/meditation/api/layout/`
+  `https://gzpt.smupa.top/meditation/api/layout/`
 - 若浏览器控制台报跨域错误 → 找管理员配 `MEDITATION_CORS_ORIGINS`
 - ⚠️ **不要在 Windows 命令行里用 curl 传中文 JSON**：终端会把参数转成 GBK，
   导致服务端解析失败而误报「字段必填」。请把请求体写成 UTF-8 文件后用
