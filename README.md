@@ -162,6 +162,34 @@ platform/
 
 资源冲突由 `(使用日期, 时段档, 座位号)` 三元组表达，并建了复合索引。
 
+### 为什么没有「金山文档（WPS）表单接单」
+
+咨询预约有 3 条**填写入口**：平台内公开页 `/consultation/appointment/`、
+值班员代录、以及 `reservation_wps`（金山文档表单推送）。
+
+冥想室只有 **2 条**：
+
+| 咨询预约 | 冥想室对应物 |
+| --- | --- |
+| `reservation_wps`（外部表单推送） | **`/meditation/api/submit/`** —— 外部页面直接调接口，落库同为「未验证预约」 |
+| `new_reservation`（值班员代录） | `new_meditation` |
+| `consultation_appointment`（平台内公开页） | **无** —— 有意不提供，页面外置在委托人域名上 |
+
+也就是说 **`submit/` 是 `reservation_wps` 的等价替代**（`meditation_api.py` 的注释里写了
+「与 reservation_wps 同构」），不是漏做。外部来源同样**只落库为待验证**，
+不直接进入处理流，由值班员验证后才生效 —— 与咨询预约同口径。
+
+### 为什么只提供**一个**问卷数据出口
+
+咨询预约声明了两个：`survey_data` 与 `survey_api_output`。
+但 **`survey_data` 是平台里的死代码 + 坏代码**：它没有注册任何路由，
+且函数体里 `{{...} for item in survey_set}` 是**对 dict 做集合推导**，
+一旦真被执行必抛 `TypeError: unhashable type: 'dict'`（已实测确认）。
+
+所以冥想室**没有照抄它**，只实现了能用的那个
+（`/meditation/api/survey/data/<key>/` ↔ `survey_api_output`）。
+**这是有意的，不是漏做。**
+
 ### 两个房间不是同一个地方
 
 - **冥想室 `410B`** —— 同学实际使用的地方
