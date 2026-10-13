@@ -117,11 +117,38 @@ from web.meditation_constants import (
 
 ## 3. `web/urls.py`
 
-### ① 顶部 import（第 17 行）追加两个模块
+### ① 顶部 import：**冥想室单独导入 + 占位兜底**（第 17 行）
+
+⚠️ **不要**把冥想室和主业务写在同一行 import —— 那样少拷一个文件就会让
+**整个 URLconf 加载失败 → 全站 500**，连咨询预约一起挂。
 
 ```python
-from web.views import account, reservation, notification, room, datashow, beta, pusher, meditation, meditation_api
+from web.views import account, reservation, notification, room, datashow, beta, pusher
+
+try:
+    from web.views import meditation, meditation_api
+except Exception as _med_err:
+    print('[meditation] 模块导入失败，已改用占位视图：{}'.format(_med_err))
+
+    def _med_stub(request, *args, **kwargs):
+        from django.http import HttpResponse
+        return HttpResponse('冥想室预约功能当前不可用，请联系管理员。', status=503)
+
+    class _MedStubModule(object):
+        def __getattr__(self, name):
+            return _med_stub
+
+    meditation = meditation_api = _MedStubModule()
 ```
+
+**为什么是"占位视图"而不是"跳过路由"**（这点很重要，我们踩过）：
+`layout/basic.html` 的导航在**每个页面**都要渲染，里面引用了
+`{% url 'meditation_list' %}` 等名字。若导入失败时干脆不注册这些路由，
+反向解析会抛 `NoReverseMatch` → **照样全站 500**，兜底等于白做。
+改成替身模块后**路由名照常注册**，只是点进去看到"功能不可用"。
+
+> 已用破坏性测试验证：把 `web/views/meditation.py` 挪走，
+> `/dashboard/` 仍返回 **200**。
 
 ### ② `urlpatterns` 末尾追加（第 116 行起，约 42 行）
 
@@ -166,9 +193,31 @@ admin.site.register(Med_Blacklist, admin_Med_Blacklist)
 ## 5. `web/views/account.py`
 
 `dashboard()` 视图内追加冥想室统计（第 153 行附近，
-放在 `notify_list = models.Notification.objects.all()[:6]` **之前**），约 19 行。
+放在 `notify_list = models.Notification.objects.all()[:6]` **之前**）。
+
+⚠️ **整段必须包 `try/except`，失败置 0 继续渲染。**
+
+首页是值班员处理**咨询预约**的入口。若冥想室的表不存在（忘了 `migrate`），
+不加兜底的话这个查询会把**整个首页打 500** —— 值班员连咨询预约都处理不了。
+
+```python
+try:
+    med_all_count = models.Med_Reservation.objects.all().count()
+    ... 全部冥想室统计 ...
+except Exception as _med_err:
+    print('[meditation] 首页统计失败，已置 0 跳过：{}'.format(_med_err))
+    med_all_count = med_not_appointment_count = med_not_received_count = 0
+    med_you_have_finished = 0
+    med_processing_progress = med_not_appointment_rate = med_not_received_rate = 0
+    med_today_checkin = 0
+```
+
+**兜底必须覆盖全部 8 个变量** —— 少一个，模板里用到它时就是 500。
 
 `render` 用的是 `locals()`，**无需改 `return render(...)`**。
+
+> 已用破坏性测试验证：把 `web_med_reservation` 表改名（模拟没迁移），
+> `/dashboard/` 仍返回 **200**。
 
 ---
 

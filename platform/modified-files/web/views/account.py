@@ -151,23 +151,38 @@ def dashboard(request):
             not_received_count * 100 / reservation_all_count))
 
         # ---------- 冥想室预约处理（与上面心理预约完全同口径）----------
-        med_all_count = models.Med_Reservation.objects.all().count()
-        med_not_appointment_count = models.Med_Reservation.objects.filter(res_form__status=0).count()
-        med_not_received_count = models.Med_Reservation.objects.filter(res_form__status=1).count()
-        med_you_have_finished = models.Med_Reservation.objects.filter(
-            ope_form__operator=request.STAFF.user).values('id').distinct().count()
-        med_processing_progress = 100.0 if med_all_count == 0 else ('%.1f' % float(
-            (med_all_count - med_not_appointment_count - med_not_received_count) * 100 / med_all_count))
-        med_not_appointment_rate = 0 if med_all_count == 0 else ('%.1f' % float(
-            med_not_appointment_count * 100 / med_all_count))
-        med_not_received_rate = 0 if med_all_count == 0 else ('%.1f' % float(
-            med_not_received_count * 100 / med_all_count))
-        # 今日已签到的冥想室预约（值班员最关心的实时数字）
-        med_today_checkin = models.Med_Reservation.objects.filter(
-            checkin_datetime__year=datetime.datetime.now().year,
-            checkin_datetime__month=datetime.datetime.now().month,
-            checkin_datetime__day=datetime.datetime.now().day,
-        ).count()
+        # ⚠️ 整段兜底：冥想室的表不存在（忘了 migrate）或查询异常时，这里置 0 继续渲染，
+        #    **绝不能让首页 500** —— 首页是值班员处理咨询预约的入口，
+        #    冥想室出问题不该把主业务一起拖下水。
+        try:
+            med_all_count = models.Med_Reservation.objects.all().count()
+            med_not_appointment_count = models.Med_Reservation.objects.filter(res_form__status=0).count()
+            med_not_received_count = models.Med_Reservation.objects.filter(res_form__status=1).count()
+            med_you_have_finished = models.Med_Reservation.objects.filter(
+                ope_form__operator=request.STAFF.user).values('id').distinct().count()
+            med_processing_progress = 100.0 if med_all_count == 0 else ('%.1f' % float(
+                (med_all_count - med_not_appointment_count - med_not_received_count) * 100 / med_all_count))
+            med_not_appointment_rate = 0 if med_all_count == 0 else ('%.1f' % float(
+                med_not_appointment_count * 100 / med_all_count))
+            med_not_received_rate = 0 if med_all_count == 0 else ('%.1f' % float(
+                med_not_received_count * 100 / med_all_count))
+            # 今日已签到的冥想室预约（值班员最关心的实时数字）
+            med_today_checkin = models.Med_Reservation.objects.filter(
+                checkin_datetime__year=datetime.datetime.now().year,
+                checkin_datetime__month=datetime.datetime.now().month,
+                checkin_datetime__day=datetime.datetime.now().day,
+            ).count()
+
+        except Exception as _med_err:
+            print('[meditation] 首页统计失败，已置 0 跳过：{}'.format(_med_err))
+            med_all_count = 0
+            med_not_appointment_count = 0
+            med_not_received_count = 0
+            med_you_have_finished = 0
+            med_processing_progress = 0
+            med_not_appointment_rate = 0
+            med_not_received_rate = 0
+            med_today_checkin = 0
 
         # 获取通知列表
         notify_list = models.Notification.objects.all()[:6]

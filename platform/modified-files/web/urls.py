@@ -14,7 +14,32 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.conf.urls import url, include
-from web.views import account, reservation, notification, room, datashow, beta, pusher, meditation, meditation_api
+from web.views import account, reservation, notification, room, datashow, beta, pusher
+
+# 冥想室视图模块单独导入并兜底。
+# 若与主业务写在同一行 import，少拷一个文件 / 模块导入期报错会让
+# **整个 URLconf 加载失败 → 全站 500**，连咨询预约一起挂。
+#
+# 兜底方式：换成一个"替身模块"，它的任何属性都返回占位视图。
+# 这样冥想室的路由与 URL name **依然照常注册** —— 各处模板里的
+# {% url 'meditation_xxx' %} 照样解析得出来（导航在每个页面都要渲染，
+# 少一个 name 就是全站 500），只是点进去会看到"功能不可用"。
+try:
+    from web.views import meditation, meditation_api
+except Exception as _med_err:
+    print('[meditation] 模块导入失败，已改用占位视图：{}'.format(_med_err))
+
+    def _med_stub(request, *args, **kwargs):
+        from django.http import HttpResponse
+        return HttpResponse('冥想室预约功能当前不可用，请联系管理员。', status=503)
+
+    class _MedStubModule(object):
+        """替身模块：所有视图属性都指向占位视图，保住路由名不被 reverse 报错。"""
+
+        def __getattr__(self, name):
+            return _med_stub
+
+    meditation = meditation_api = _MedStubModule()
 
 urlpatterns = [
     url(r'^index/', account.index, name='index'),
