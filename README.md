@@ -47,13 +47,19 @@ SMUPA 平台 https://gzpt.smupa.top/meditation/api/*   ← platform/ 部署在�
 
 ## 一、`frontend/` —— 给开发方
 
-**你的预约页已经上线了**：<https://kmv-learning-assistant.xyz/meditation/>
+**这是本包里的纯静态版**（`Web_4.7.1`），`config.js` 的 `API_BASE` 已指向
+`https://gzpt.smupa.top/meditation/api`，**直接传上去即可**。
 
-所以这份静态包**不是必须部署**的 —— 它现在的作用是**对接参照**：
-里面的请求写法与 `API.md` 的接口规格严格一致，可对着比对。
-若要重新部署，详见 [`frontend/README.md`](frontend/README.md)，三步：
+> ⚠️ **注意线上现在跑的不是这一版。**
+> <https://kmv-learning-assistant.xyz/meditation/> 目前还是**早前的过渡版
+> `Web_4.7.0`** —— 那一版自带 7 个接口、把预约存在浏览器本地，
+> **已作废**（代码留在 `18fb100` 提交里）。
+> 纯静态版已经写好并验证，但因**平台侧尚未部署**而压着没切。
+> 切换前请先确认管理员侧已完成文末检查单的 1–6 项。
 
-1. 改 `frontend/config.js` 里的 `API_BASE` 为 SMUPA 平台地址
+部署（切版）三步，详见 [`frontend/README.md`](frontend/README.md)：
+
+1. `config.js` 的 `API_BASE` **已填好**，通常不用动
 2. 确认管理员已把 `https://kmv-learning-assistant.xyz`
    加进平台的 `MEDITATION_CORS_ORIGINS`（见下节 ⚠️ 第 2 条）
 3. 把 6 个文件传到 `kmv-learning-assistant.xyz/meditation/`
