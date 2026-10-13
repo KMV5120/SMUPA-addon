@@ -202,8 +202,16 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
 | `seat` | ✓ | 座位号，1–17 |
 | `agree` | ✓ | 传 `1` 表示已同意须知 |
 | `read_seconds` | ✓ | 须知页实际停留秒数，**须 ≥ 5** |
+| `stu_code` / `note` |  | 选填 |
 | `sex` / `college` / `grade` |  | 默认 `0` / `10` / `9` |
-| `stu_code` / `email` / `note` |  | 选填 |
+| **`email`** | 服务端选填，**但建议你在页面上设为必填** | 见下方 ⚠️ |
+
+> ⚠️ **强烈建议把 `email` 在页面上设为必填。**
+> 服务端不强制它，但**签退后给同学发「满意度调查邀请」靠的就是这个邮箱** ——
+> 没填的话，`send_meditation_survey` 会直接返回
+> 「该预约单没有邮箱，无法发送邀请！」，**这一单的问卷就永远发不出去**，
+> 而且不会有任何别的提示。
+> 页面侧加一个 `required` 即可，成本极低。
 
 **成功**
 ```json

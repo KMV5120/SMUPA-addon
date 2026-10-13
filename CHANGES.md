@@ -302,6 +302,48 @@ python manage.py migrate
 
 ---
 
+## ⚠️ 关于静态文件（**很容易漏，漏了页面裸奔**）
+
+本包新增了 **2 个 CSS**：
+
+```
+static/css/meditation.css              （新）
+static/css/reservation_calendar.css    （新）
+```
+
+**必须把它们实际放到生产环境的静态目录里** —— 生产由 nginx 直接服务
+`BASE_DIR/static`，Django 不会自动帮你搬。
+
+### ⚠️ 不要用 `collectstatic`
+
+平台存在一个已知配置缺陷（详见仓库根的 `服务器部署隐患报告.md` 第 1 条）：
+
+```python
+STATIC_ROOT == STATICFILES_DIRS == BASE_DIR/static
+```
+
+两者指向同一目录，`python manage.py collectstatic` 会直接抛
+`ImproperlyConfigured: The STATICFILES_DIRS setting should not contain the STATIC_ROOT setting`。
+
+**这是平台的既有问题，本次交付没有去动它。** 所以请**手工拷贝**：
+
+```bash
+# 在平台根目录执行（路径按你的实际部署位置调整）
+cp -r platform/new-files/static/css/meditation.css           static/css/
+cp -r platform/new-files/static/css/reservation_calendar.css static/css/
+# 若 nginx 配的是另一个静态根（如 /var/www/xxx/static），拷到那儿
+```
+
+> 两个文件都是**纯新增**，不会覆盖平台任何既有 CSS，直接拷即可。
+> 拷完**不必重启**（nginx 直接读文件），但浏览器可能缓存旧的，清一下缓存或强刷。
+
+### 怎么确认没漏
+
+部署后打开 `/dashboard/`，如果**看到样式是乱的**（裸 HTML），
+九成就是这两个 CSS 没放到位。冥想室详情页的选座图同样依赖 `meditation.css`。
+
+---
+
 ## 改动量汇总
 
 | 文件 | 改动量 |
