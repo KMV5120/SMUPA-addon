@@ -585,7 +585,15 @@ def s13_咨询预约周历(staff):
     r = staff.get('/consultation/calendar/')
     html = r.content.decode('utf-8', 'ignore')
     check('本周的单出现在周历里', '88001' in html, True)
-    check('周历显示咨询师', '王老师' in html, True)
+    # ⚠️ 必须验**可见文字**，不能只验 "'王老师' in html" ——
+    #    姓名若只写在 title 属性里（鼠标悬停才出现），那种断言照样通过。
+    #    这个坑真实发生过：栅格周历一开始把咨询师塞进 tooltip，
+    #    而原版（小时时间轴）是可见文字 —— 属于做新版时的退化。
+    #    办法：先把属性值抹掉，再在剩下的正文里找。
+    text_only = re.sub(r'\s(?:title|aria-label|placeholder|data-[\w-]+)="[^"]*"', '', html)
+    check('周历把咨询师显示为**可见文字**（不是只藏在 tooltip）',
+          '王老师' in text_only, True)
+    check('单元格确实渲染了这一行', '10:30' in text_only, True)
     check('周历显示具体时刻', '10:30' in html, True)
 
     # --- 已完成(2)的单不该出现在周历（与冥想室同口径：只看 0/1）---

@@ -46,9 +46,9 @@
                                 <td class="{% if cell.is_today %}is-today{% endif %}">
                                     {% for ev in cell.events %}
                                         <span class="res-event status-{{ ev.status }}"
-                                              title="{{ ev.name }}（{{ ev.hhmm }}｜{{ ev.psychologist }}）"
+                                              title="{{ ev.uid }} 号单｜{{ ev.name }}｜{{ ev.hhmm }}｜咨询师：{{ ev.psychologist }}"
                                               onclick="window.location.href='{% url 'reservation_detail' uid=ev.uid %}'">
-                                            {{ ev.uid }}·{{ ev.hhmm }}
+                                            {{ ev.uid }}·{{ ev.hhmm }} ｜ <b>{{ ev.psychologist }}</b>
                                         </span>
                                     {% endfor %}
                                 </td>
