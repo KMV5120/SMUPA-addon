@@ -2,10 +2,12 @@
 """
 端到端集成测试（**平台侧单侧**）—— 管理员验收用。
 
-它的定位：**不是**逐个动作的单元自检，而是把"同学侧"与"值班员侧"
-串成一条完整业务链路的集成测试 —— 交付方本地还另有一套分层自检
-（数据层 / 平台端动作 / 接口契约 / 真 HTTP+CORS 传输层），本文件是其中
-覆盖面最宽的一份，故随包交付供验收。
+与既有分层自检的分工：
+    verify1  数据层（模型/占用语义/SQL 条数）
+    verify2  平台端十个处理动作（逐个动作的正确性）
+    verify4  对外接口契约（鉴权/校验/并发防重）
+    mp_simulate.js / web_simulate.js  真 HTTP + CORS 传输层
+    **verify_e2e（本文件）—— 把两侧串成一条完整业务链路**
 
 本测试模拟两位真实用户，全程走 URL 路由 + 中间件 + 视图 + 表单 + 模型 + 数据库：
 
@@ -28,35 +30,15 @@
     2. `SURVEY_API_KEY` 未配置时先断言"拒绝访问"，再用 override_settings
        临时配置后断言数据能取出 —— 覆盖开关的两个方向。
 
-全部数据包裹在事务里并回滚，可反复运行（不在库里留任何痕迹）。
-
---------------------------------------------------------------------------
-怎么跑（**重要：这是平台侧的集成测试，不是单元测试**）
---------------------------------------------------------------------------
-它用 Django 的测试客户端**在进程内**走完整条 URL -> 中间件 -> 视图 -> 表单 ->
-模型 -> 数据库的链路，因此必须在一个**能 import 到平台代码**的 Python 环境里跑：
-
-    cd <平台根目录>                 # 有 manage.py 的那层
-    python ../tests/e2e_verify.py
-
-前置条件（缺一不可）：
-
-  1. `DJANGO_SETTINGS_MODULE` 要指向能跑通平台的 settings
-     （本文件默认 `local_settings`，那是交付方本地验证环境的名字；
-      在你们的服务器上改成自己的 settings 模块，或用环境变量覆盖）。
-  2. **库里要有一个职务足够高的测试账号**，供"值班员侧"使用
-     —— 见文件里的 `CHAIR_CODE` / `STAFF_CODE` 两个常量，
-       默认按 `stu_code` 查找，请改成你们实际存在的账号。
-  3. 会向库里写测试数据，但**整体包在事务里最后回滚**，不污染正式数据。
-
-第 [13] 组用例覆盖的是「咨询预约栅格周历」（本次随包交付的平台侧改动），
-其余各组覆盖冥想室预约的完整业务链路，详见下面各组标题。
+全部数据包裹在事务里并回滚，可反复运行。
+用法：./run.sh e2e
 """
 
 import datetime
 import hashlib
 import json
 import os
+import re
 import sys
 
 import django
@@ -630,6 +612,64 @@ def s13_咨询预约周历(staff):
           '日期格式错误' in r.content.decode('utf-8', 'ignore'), True)
 
 
+def s14_CSRF(staff):
+    """回归：详情页的动作在**真实浏览器**里点得动吗。
+
+    为什么必须单独测：Django 测试客户端默认 `enforce_csrf_checks=False`
+    —— 整个 CSRF 校验被绕过。所以即使模板里漏了 `{% csrf_token %}`
+    （真实浏览器里所有处理按钮都会 403），前面 13 组也会**全绿**。
+    这里显式打开校验再走一遍，把这条盲区堵上。
+
+    背景：`detail_meditation.html` 曾一度 11 个 form 一个 token 都没有，
+    而咨询预约的 `detail_reservation.html` 每个 form 都有 —— 属照搬时的遗漏。
+    """
+    print('\n[14] CSRF：详情页动作在真实浏览器里点得动吗')
+
+    uid = 96001
+    res = models.Med_Reservation.objects.create(
+        uid=uid, name='CSRF 回归样本', sex=0, college=0, grade=2,
+        mobile_phone='13900096001', email='csrf@test.local',
+        res_date=DAY, slot=7, seat=9, note='', agree=1, source=3,
+    )
+    models.Med_Form_Data.objects.create(res_form=res, status=5)
+
+    strict = Client(enforce_csrf_checks=True)
+    u = models.UserInfo.objects.get(stu_code=CHAIR_CODE)
+    s = strict.session
+    s['user_id'] = u.id
+    s.save()
+
+    url = '/meditation/detail/{}/'.format(uid)
+
+    # ① 不带 token 的 POST 必须被拒（证明 CSRF 真的是开着的，测试没自欺）
+    r = strict.post(url, {'method': 'reg', 'staff1': ''})
+    check('不带 CSRF token 的 POST 被拒', r.status_code, 403)
+
+    # ② 先 GET：模板里有 {% csrf_token %} 才会下发 csrftoken cookie
+    r = strict.get(url)
+    check('详情页 GET 正常', r.status_code, 200)
+    check_true('GET 下发了 csrftoken cookie', 'csrftoken' in strict.cookies)
+    token = strict.cookies['csrftoken'].value if 'csrftoken' in strict.cookies else ''
+    check_true('拿到 csrftoken', bool(token))
+
+    # ③ 带上 token（浏览器 AJAX 会把表单里的 hidden input 一起 serialize 上来）
+    r = strict.post(url, {'method': 'reg', 'staff1': '',
+                          'csrfmiddlewaretoken': token})
+    check('带 CSRF token 的 POST 成功', r.status_code, 200)
+    check('状态 5 -> 0', form_of(uid).status, 0)
+
+    # ④ 模板级兜底：每个 <form> 后面都必须是 {% csrf_token %}，
+    #    防止以后新增表单时又漏掉。这比逐个动作去试更彻底。
+    tpl_path = os.path.join(settings.BASE_DIR, 'web', 'templates',
+                            'meditation', 'detail_meditation.html')
+    with open(tpl_path, encoding='utf-8') as f:
+        tpl = f.read()
+    forms = re.findall(r'<form[^>]*>\s*(\{%\s*csrf_token\s*%\})?', tpl)
+    missing = sum(1 for g in forms if not g)
+    check('模板里 form 总数 > 0（确认真的读到了模板）', len(forms) > 0, True)
+    check('每个 form 都带 csrf_token（缺 {} 个）'.format(missing), missing, 0)
+
+
 def main():
     print('=' * 68)
     print('平台侧 —— 端到端集成测试')
@@ -664,6 +704,7 @@ def main():
             s11_权限门槛(uid_jia)
             s12_模块隔离(uid_jia, psy_ops_before)
             s13_咨询预约周历(staff)
+            s14_CSRF(staff)
 
             transaction.set_rollback(True)
     except Exception as e:

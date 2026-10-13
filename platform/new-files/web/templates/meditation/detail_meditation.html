@@ -250,6 +250,7 @@
                     <div class="modal-body">
                         <p>验证后该预约单将进入「待受理」，请确认小程序提交的信息无误。</p>
                         <form id="regForm">
+                            {% csrf_token %}
                             <label class="form-label" for="id_staff1_5">其他值班员</label>
                             <input type="text" name="staff1" id="id_staff1_5" data-field="staff1"
                                    class="form-control" placeholder="多人用空格分隔，可不填">
@@ -270,6 +271,7 @@
                     <div class="modal-header"><h5 class="modal-title">废弃预约单</h5></div>
                     <div class="modal-body">
                         <form id="deleteForm">
+                            {% csrf_token %}
                             <label class="form-label" for="id_comment_del">废弃原因</label>
                             <textarea name="comment" id="id_comment_del" data-field="comment"
                                       class="form-control" rows="3"></textarea>
@@ -292,6 +294,7 @@
                     <div class="modal-body">
                         <p class="med-tip">确认使用日期、时段与座位；若小程序已选好，保持默认即可。</p>
                         <form id="resForm">
+                            {% csrf_token %}
                             <div class="mb-2">
                                 <label class="form-label" for="id_guide_r">值班引导员</label>
                                 <input type="text" name="guide" id="id_guide_r" data-field="guide"
@@ -347,6 +350,7 @@
                     <div class="modal-header"><h5 class="modal-title">改约处理</h5></div>
                     <div class="modal-body">
                         <form id="changeForm">
+                            {% csrf_token %}
                             <div class="mb-2">
                                 <label class="form-label" for="id_guide_c">值班引导员</label>
                                 <input type="text" name="guide" id="id_guide_c" data-field="guide"
@@ -402,6 +406,7 @@
                     <div class="modal-body">
                         <p class="med-tip">将复制本单的预约者信息，生成一张新单。</p>
                         <form id="renewalForm">
+                            {% csrf_token %}
                             <div class="mb-2">
                                 <label class="form-label" for="id_guide_n">值班引导员</label>
                                 <input type="text" name="guide" id="id_guide_n" data-field="guide"
@@ -472,6 +477,7 @@
                     <div class="modal-header"><h5 class="modal-title">废弃预约单</h5></div>
                     <div class="modal-body">
                         <form id="deleteForm">
+                            {% csrf_token %}
                             <label class="form-label" for="id_comment_del">废弃原因</label>
                             <textarea name="comment" id="id_comment_del" data-field="comment"
                                       class="form-control" rows="3" required></textarea>
@@ -493,6 +499,7 @@
                     <div class="modal-header"><h5 class="modal-title">添加备注</h5></div>
                     <div class="modal-body">
                         <form id="commentForm">
+                            {% csrf_token %}
                             <label class="form-label" for="id_comment">备注内容</label>
                             <textarea name="comment" id="id_comment" data-field="comment"
                                       class="form-control" rows="3" required></textarea>
@@ -514,6 +521,7 @@
                     <div class="modal-header"><h5 class="modal-title">添加工作记录</h5></div>
                     <div class="modal-body">
                         <form id="workForm">
+                            {% csrf_token %}
                             <div class="mb-2">
                                 <label class="form-label" for="id_staff_w">值班员姓名</label>
                                 <input type="text" name="staff" id="id_staff_w" data-field="staff"
@@ -546,6 +554,7 @@
                     <div class="modal-header"><h5 class="modal-title">预约信息分享</h5></div>
                     <div class="modal-body">
                         <form id="inviteForm">
+                            {% csrf_token %}
                             <div class="mb-2">
                                 <label class="form-label" for="id_period">有效期</label>
                                 <select name="period" id="id_period" data-field="period" class="form-select">
@@ -603,6 +612,7 @@
                     <div class="modal-body">
                         <p>确认同学已在 {% med_checkin_room %} 值班室完成纸质签到，并已阅读《入门须知》、穿戴鞋套。</p>
                         <form id="checkinForm">
+                            {% csrf_token %}
                             <label class="form-label" for="id_staff_ci">其他值班员</label>
                             <input type="text" name="staff" id="id_staff_ci" data-field="staff6"
                                    class="form-control" placeholder="多人用空格分隔，可不填">
@@ -625,6 +635,7 @@
                     <div class="modal-body">
                         <p>确认已完成纸质签退、清场并检查房间。</p>
                         <form id="finishForm">
+                            {% csrf_token %}
                             <label class="form-label" for="id_staff_f">其他值班员</label>
                             <input type="text" name="staff" id="id_staff_f" data-field="staff3"
                                    class="form-control" placeholder="多人用空格分隔，可不填">
