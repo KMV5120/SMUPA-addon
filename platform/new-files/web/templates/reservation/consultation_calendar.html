@@ -1,0 +1,69 @@
+{% extends 'layout/basic.html' %}
+{% load static %}
+
+{% block title %}咨询预约周历{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/reservation_list.css' %}">
+    <link rel="stylesheet" href="{% static 'css/reservation_calendar.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid p-md-4">
+        <div class="box shadow">
+            <div class="box-title d-flex justify-content-between align-items-center flex-wrap">
+                <h5 class="mb-0"><i class="fa fa-calendar" aria-hidden="true"></i> 本周咨询预约</h5>
+                <span class="text-muted small">
+                    {{ week_days.0.2|date:"Y-m-d" }} ~ {{ week_days.6.2|date:"Y-m-d" }}
+                    ｜行 = 小时（7:00-20:00），仅显示预约未完成 / 接待未完成的单
+                </span>
+            </div>
+            <div class="box-body p-3">
+                {% if skipped_bad_datetime %}
+                    <p class="text-danger small mb-2">
+                        有 {{ skipped_bad_datetime }} 条预约单的咨询时间格式不合法，已跳过未显示，
+                        请到预约列表中检查后修正。
+                    </p>
+                {% endif %}
+
+                <table class="res-calendar">
+                    <thead>
+                    <tr>
+                        <th class="hour-col">时间</th>
+                        {% for wd, wname, wdate in week_days %}
+                            <th class="{% if wdate == today %}is-today{% endif %}">
+                                {{ wname }}<br>
+                                <small class="text-muted">{{ wdate|date:"m/d" }}</small>
+                            </th>
+                        {% endfor %}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for row in calendar_rows %}
+                        <tr>
+                            <td class="hour-col">{{ row.label }}</td>
+                            {% for cell in row.cells %}
+                                <td class="{% if cell.is_today %}is-today{% endif %}">
+                                    {% for ev in cell.events %}
+                                        <span class="res-event status-{{ ev.status }}"
+                                              title="{{ ev.name }}（{{ ev.hhmm }}｜{{ ev.psychologist }}）"
+                                              onclick="window.location.href='{% url 'reservation_detail' uid=ev.uid %}'">
+                                            {{ ev.uid }}·{{ ev.hhmm }}
+                                        </span>
+                                    {% endfor %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+                <div class="res-legend mt-3">
+                    <span><i class="lg-0"></i>预约未完成</span>
+                    <span><i class="lg-1"></i>接待未完成</span>
+                    <span class="res-tip">点击色块进入预约单详情</span>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

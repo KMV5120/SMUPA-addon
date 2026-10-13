@@ -1,0 +1,99 @@
+/* --------------------------------------------------------------------------
+   咨询预约周历（栅格式）
+
+   视觉与冥想室周历（web/static/css/meditation.css 的 .med-calendar 段）保持一致，
+   但**刻意不共用那份样式**：咨询预约是平台原有模块，冥想室是附加模块，
+   两者不该互相依赖 —— 哪天拿掉冥想室模块，这个页面也必须照常好看。
+
+   行 = 小时（7:00-20:00），列 = 周一~周日。
+   结构由 views/reservation.py:consultation_calendar 铺平成"行列表"后交给模板。
+   -------------------------------------------------------------------------- */
+.res-calendar {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.res-calendar th,
+.res-calendar td {
+    border: 1px solid #e9ecef;
+    padding: 4px 6px;
+    vertical-align: top;
+}
+
+.res-calendar thead th {
+    background: #f8f9fa;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.res-calendar .hour-col {
+    white-space: nowrap;
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    width: 130px;
+}
+
+.res-calendar td {
+    height: 30px;
+}
+
+.res-calendar .is-today {
+    background: #fff5f2;
+}
+
+/* 事件色块：0=预约未完成(珊瑚红) 1=接待未完成(橙) —— 与冥想室周历同色系 */
+.res-event {
+    display: block;
+    border-radius: 4px;
+    padding: 1px 4px;
+    margin-bottom: 2px;
+    font-size: 12px;
+    color: #fff;
+    cursor: pointer;
+    background: #ED765E;
+}
+
+.res-event.status-1 {
+    background: #FEA858;
+}
+
+.res-event:hover {
+    filter: brightness(0.92);
+}
+
+/* 图例 */
+.res-legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    font-size: 13px;
+    color: #6c757d;
+}
+
+.res-legend i {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    vertical-align: -2px;
+    margin-right: 4px;
+}
+
+.res-legend .lg-0 {
+    background: #ED765E;
+}
+
+.res-legend .lg-1 {
+    background: #FEA858;
+}
+
+.res-tip {
+    font-size: 13px;
+    color: #6c757d;
+}

@@ -124,6 +124,19 @@ from web.views import account, reservation, notification, room, datashow, beta, 
 > 注意：**平台端没有对外预约页面** —— 同学页面由开发方托管在另一个域名上。
 > 本平台只提供接口。
 
+### ③ 另在既有路由区追加 1 条咨询预约周历路由（第 61 行附近）
+
+这次的改动**不在文件末尾**，而是在既有的咨询预约路由旁边（`/calendar/` 之后）：
+
+```python
+# 咨询预约周历（栅格版，与上面 /calendar/ 并存，互不影响）
+url(r'^consultation/calendar/$', reservation.consultation_calendar, name='consultation_calendar'),
+```
+
+> **既有的 `/calendar/` 一行未动**，两条路由并存：
+> `/calendar/` 是平台原有的「小时时间轴」版，`/consultation/calendar/` 是本次新增的栅格版。
+> 见第 10 节。
+
 ---
 
 ## 4. `web/admin.py`
@@ -155,8 +168,42 @@ admin.site.register(Med_Blacklist, admin_Med_Blacklist)
 
 ## 6. `web/templates/dashboard.html`
 
-在既有 `<section id="number">…</section>`（预约处理）与 `<section id="info">`
-**之间**插入新块（第 84-152 行附近，约 69 行）。
+这个文件有**三处**改动。
+
+### ① 把一个标题改名（**唯一一处改到既有文字的地方**）
+
+第 27 行，既有的咨询预约区块标题：
+
+```diff
+-            <h3 class="mb-5">预约处理</h3>
++            <h3 class="mb-5">咨询预约处理</h3>
+```
+
+原因：下方新增的冥想室区块叫「冥想室预约处理」，两个都叫「预约处理」会分不清。
+
+> 只改了这一处**显示文字**，没有改它的 `id="number"`、类名或任何逻辑。
+
+### ② 给咨询预约区块补一排按钮（第 80 行附近，约 18 行）
+
+在该区块 `</div>`（数字卡片行结束）与 `</div></div></section>` 之间插入：
+
+```html
+<div class="mt-4">
+    <a role="button" class="btn btn-sm btn-outline-secondary"
+       href="{% url 'consultation_calendar' %}">… 预约周历</a>
+    <a role="button" class="btn btn-sm btn-outline-secondary"
+       href="{% url 'new_reservation' %}">… 预约填写</a>
+    <a role="button" class="btn btn-sm btn-outline-secondary"
+       href="{% url 'operate_history' %}">… 操作历史</a>
+</div>
+```
+
+与下方冥想室区块那排按钮**同三样、同顺序、同类名**，两区块视觉对称。
+
+### ③ 插入冥想室区块（第 84-152 行附近，约 69 行）
+
+在既有 `<section id="number">…</section>` 与 `<section id="info">`
+**之间**插入新块。
 
 > ⚠️ **必须用 `{% comment %}` 而不是多行 `{# #}`** ——
 > Django 1.11 的模板正则没有 `re.DOTALL`，多行 `{# #}` **不是注释**，
@@ -192,6 +239,47 @@ def parse_date(text):             # 解析成 date，非法返回 None
 
 ---
 
+## 10. `web/views/reservation.py` ＋ 新增 1 页 1 样式（咨询预约周历）
+
+这一节与前 9 节**不是同一个功能** —— 前 9 节是冥想室模块，
+这一节是给**平台原有的咨询预约**加一个栅格式周历，与冥想室无关。
+
+### ① `web/views/reservation.py`：追加 1 个视图函数
+
+在既有 `def calendar(request):` **之后**、`def consultation_appointment(request):`
+**之前**插入（约 71 行）：
+
+```python
+def consultation_calendar(request):
+    """本周咨询预约周历（栅格式）。"""
+```
+
+> **既有的 `calendar()` 一行未改**，两条路由并存。
+
+### ② 新增文件 `web/templates/reservation/consultation_calendar.html`（约 76 行）
+
+### ③ 新增文件 `static/css/reservation_calendar.css`（约 106 行）
+
+> 样式**刻意不共用**冥想室的 `meditation.css`，而是独立一份：
+> 咨询预约是平台原有模块，不该依赖附加的冥想室模块 ——
+> 哪天拿掉冥想室，这个页面也必须照常好看。
+
+### 为什么不直接改造原有的 `/calendar/`
+
+原有的 `/calendar/` 是「**小时时间轴**」版（左侧 7:00–20:00 刻度、右侧七天列），
+样式与冥想室周历完全不同。**为避免动到平台既有页面**，本次新增一页而不是替换，
+两个版本并存，按导航入口各取所需。
+
+### 与原有版本的一处行为差异（有意为之）
+
+咨询时间存在 `Res_Form_Data.res_datetime` 这个**字符串**字段里，
+没法在 DB 层按日期区间过滤，只能在 Python 侧解析归周。
+原有那版遇到一条（status=1 的）格式坏的单，会**整页替换成错误页**
+（HTTP 仍是 200，但周历完全看不到了 —— 已实测确认）；
+新版改为**跳过坏数据继续渲染**，并在页面顶部提示有几条被跳过。
+
+---
+
 ## ⚠️ 关于数据库迁移
 
 **本包不含迁移文件**，部署时在服务器上自行生成：
@@ -214,12 +302,22 @@ python manage.py migrate
 | --- | --- |
 | `gzpt/settings.py` | +1 中间件、+3 白名单、+16 配置 |
 | `web/models.py` | +1 import、+260 行模型 |
-| `web/urls.py` | +1 模块、+42 行路由 |
+| `web/urls.py` | +1 模块、+42 行冥想室路由、+1 行咨询周历路由 |
 | `web/admin.py` | +39 行 |
 | `web/views/account.py` | +19 行 |
-| `web/templates/dashboard.html` | +69 行 |
+| `web/templates/dashboard.html` | +1 处标题改名、+18 行按钮、+69 行冥想室区块 |
 | `web/templates/layout/basic.html` | +22 行 |
 | `utils/validate_tools.py` | +25 行 |
 | `.env.example` | +30 行 |
+| `web/views/reservation.py` | +71 行（咨询预约周历视图） |
+| `web/templates/reservation/consultation_calendar.html` | 新增，约 76 行 |
+| `static/css/reservation_calendar.css` | 新增，约 106 行 |
 
-**既有代码逻辑一行未改**，全部是追加。
+### 对既有代码的改动
+
+**只有一处**：`dashboard.html` 里咨询预约区块的标题
+`预约处理` → `咨询预约处理`（纯显示文字，第 6 节 ①）。
+其余全部是**追加**，没有改动任何既有函数、模型字段或页面逻辑。
+
+> 另核对过：本次新增的 `consultation_calendar` 视图与原有的 `calendar()` 视图
+> 并存于 `reservation.py`，后者**一行未动**。

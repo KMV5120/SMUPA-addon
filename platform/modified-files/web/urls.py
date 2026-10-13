@@ -57,8 +57,10 @@ urlpatterns = [
     url('reservation/print/(?P<uid>\d+)/$', reservation.print_reservation, name='print_reservation'),  # 打印预约单
     url('reservation/appoint/list/$', reservation.reservation_appoint_list, name='reservation_appoint_list'),  # 预约未完成列表
     url('reservation/receive/list/$', reservation.reservation_receive_list, name='reservation_receive_list'),  # 接待未完成列表
-    url(r'^calendar/$', reservation.calendar, name='calendar'),  # 预约周历
+    url(r'^calendar/$', reservation.calendar, name='calendar'),  # 预约周历（原有·小时时间轴版）
     url(r'consultation/appointment/$', reservation.consultation_appointment, name='consultation_appointment'),
+    # 咨询预约周历（栅格版，与上面 /calendar/ 并存，互不影响）
+    url(r'^consultation/calendar/$', reservation.consultation_calendar, name='consultation_calendar'),
     url(r'^reservation/wps/$', reservation.reservation_wps, name='reservation_wps'),
     # 咨询预约-对外
     url(r'^res/share/code/(?P<res_id>\d+)/$', reservation.res_share_code, name='res_share_code'),  # 分享预约
