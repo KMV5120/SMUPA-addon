@@ -184,16 +184,12 @@ preloader
                                 class="dropdown-menu"
                                 aria-labelledby="med-menu"
                         >
-                            <li><a class="dropdown-item" href="{% url 'new_meditation' %}">预约代录 <i
-                                    class="fa fa-pencil-square-o" aria-hidden="true"></i></a></li>
+                            {# 只留首页区块没有的两个入口：其余三个（预约代录 / 预约周历 /
+                               操作历史）首页「冥想室预约处理」区块底部已有按钮，此处不重复。 #}
                             <li><a class="dropdown-item" href="{% url 'meditation_list' %}">预约列表 <i
                                     class="fa fa-list-ul" aria-hidden="true"></i></a></li>
                             <li><a class="dropdown-item" href="{% url 'meditation_selection' %}">选座总览 <i
                                     class="fa fa-th" aria-hidden="true"></i></a></li>
-                            <li><a class="dropdown-item" href="{% url 'meditation_calendar' %}">预约周历 <i
-                                    class="fa fa-calendar" aria-hidden="true"></i></a></li>
-                            <li><a class="dropdown-item" href="{% url 'med_operate_history' %}">操作历史 <i
-                                    class="fa fa-history" aria-hidden="true"></i></a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
