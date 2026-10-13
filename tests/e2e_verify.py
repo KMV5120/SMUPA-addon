@@ -79,6 +79,8 @@ def check_true(name, cond):
 # ---------------------------------------------------------------------------
 CHAIR_CODE = '2021000001'   # 测试主席，user_type=6
 STAFF_CODE = '2021000003'   # 测试干事，user_type=1（权限不足的样本）
+ASSIST_CODE = '2021000004'  # 测试主席助理，user_type=5（未验证单门槛的临界值）
+MINISTER_CODE = '2021000002'  # 测试部长，user_type=3（用来卡住门槛的下界）
 
 # 日期取得足够远，避开"距开始不足 60 分钟不可自助改约"的时间门槛
 DAY = datetime.date.today() + datetime.timedelta(days=30)
@@ -658,16 +660,114 @@ def s14_CSRF(staff):
     check('带 CSRF token 的 POST 成功', r.status_code, 200)
     check('状态 5 -> 0', form_of(uid).status, 0)
 
-    # ④ 模板级兜底：每个 <form> 后面都必须是 {% csrf_token %}，
-    #    防止以后新增表单时又漏掉。这比逐个动作去试更彻底。
-    tpl_path = os.path.join(settings.BASE_DIR, 'web', 'templates',
-                            'meditation', 'detail_meditation.html')
-    with open(tpl_path, encoding='utf-8') as f:
-        tpl = f.read()
-    forms = re.findall(r'<form[^>]*>\s*(\{%\s*csrf_token\s*%\})?', tpl)
-    missing = sum(1 for g in forms if not g)
-    check('模板里 form 总数 > 0（确认真的读到了模板）', len(forms) > 0, True)
-    check('每个 form 都带 csrf_token（缺 {} 个）'.format(missing), missing, 0)
+    # ④ 模板级兜底：**凡是会发 POST 的模板**，每个 <form> 后面都必须是
+    #    {% csrf_token %}。防止以后新增表单时又漏掉，比逐个动作去试更彻底。
+    #
+    #    只扫"会 POST 的模板"：纯 GET 的表单（如 _res_table.html 的搜索框、
+    #    operate_history.html 的 GET 查询）本就不需要 token，
+    #    一刀切扫描会误报。
+    tpl_dir = os.path.join(settings.BASE_DIR, 'web', 'templates', 'meditation')
+    POST_HINTS = ("postAction", "type: 'POST'", 'type: "POST"',
+                  "method: 'POST'", 'method: "POST"')
+    scanned, bad = [], []
+    for name in sorted(os.listdir(tpl_dir)):
+        if not name.endswith('.html'):
+            continue
+        with open(os.path.join(tpl_dir, name), encoding='utf-8') as f:
+            tpl = f.read()
+        if not any(h in tpl for h in POST_HINTS):
+            continue                      # 不发 POST，跳过
+        scanned.append(name)
+        forms = re.findall(r'<form[^>]*>\s*(\{%\s*csrf_token\s*%\})?', tpl)
+        n_missing = sum(1 for g in forms if not g)
+        if n_missing:
+            bad.append('{} 缺 {} 个'.format(name, n_missing))
+
+    check('确实扫到了会发 POST 的模板（不是空扫）', len(scanned) > 0, True)
+    check('会发 POST 的模板里，每个 form 都带 csrf_token（问题：{}）'.format(bad), bad, [])
+    # 明细打出来，便于一眼看到扫了哪些
+    print('       扫描的模板: {}'.format(', '.join(scanned)))
+
+
+def s15_未验证单门槛(staff):
+    """未验证预约的查看门槛 = user_type >= 5（主席助理及以上）。
+
+    与咨询预约刻意保持一致（`reservation.py:173` ↔ `meditation.py:288`），
+    见 README「设计决定」。这条门槛只拦 **GET 详情页**，POST 分支不拦 ——
+    那个已知缺口按决定保留，这里**只固化门槛本身**，不去固化那个洞。
+
+    顺带验一件事：门槛只对 status=5 生效。一旦验证成 0，低职务就能正常打开。
+    """
+    print('\n[15] 未验证单的查看门槛（>=5 主席助理）')
+
+    uid = 96002
+    res = models.Med_Reservation.objects.create(
+        uid=uid, name='门槛回归样本', sex=0, college=0, grade=2,
+        mobile_phone='13900096002', email='gate@test.local',
+        res_date=DAY, slot=8, seat=11, note='', agree=1, source=3,
+    )
+    models.Med_Form_Data.objects.create(res_form=res, status=5)
+    url = '/meditation/detail/{}/'.format(uid)
+
+    def blocked_in(client):
+        return '请等待值班主席助理验证' in client.get(url).content.decode('utf-8', 'ignore')
+
+    # 门下/门下附近逐个试，把门槛**卡死在 5**：
+    #   只测 1 和 5 是不够的 —— 门槛被误改成 3 时，干事(1)照样被挡，测试不会报警。
+    low, low_user = staff_client(STAFF_CODE)          # 干事 1
+    check('样本：干事职务 = 1', low_user.user_type, 1)
+    check('干事被挡', blocked_in(low), True)
+
+    min_, min_user = staff_client(MINISTER_CODE)      # 部长 3
+    check('样本：部长职务 = 3', min_user.user_type, 3)
+    check('部长**也**被挡（门槛比部长高）', blocked_in(min_), True)
+
+    # 督导组 4 —— 种子里没有，临时造一个，用 session 直连即可
+    # （AuthMiddleware 只认 session['user_id']，不看 is_locked）
+    sup = models.UserInfo.objects.create(
+        username='临时督导', stu_code='2021900004', email='sup@test.local',
+        mobile_phone='13900009004', password='x', user_type=4, apartment=7,
+        college=0, class_name='测试班')
+    sup_client, _ = staff_client('2021900004')
+    check('样本：督导组职务 = 4', sup.user_type, 4)
+    check('督导组也被挡', blocked_in(sup_client), True)
+
+    mid, mid_user = staff_client(ASSIST_CODE)         # 主席助理 5
+    check('样本：主席助理职务 = 5', mid_user.user_type, 5)
+    check('主席助理可以打开未验证单', blocked_in(mid), False)
+
+    # 验证成 0 之后，低职务也应能打开 —— 门槛只针对未验证态
+    f = form_of(uid)
+    f.status = 0
+    f.save(update_fields=['status'])
+    r = low.get(url)
+    check('验证成 0 后干事也能打开',
+          '请等待值班主席助理验证' in r.content.decode('utf-8', 'ignore'), False)
+
+
+def s16_静态资源可达():
+    """模块新增的 CSS 必须能被 staticfiles finders 找到。
+
+    漏了会怎样：页面照样 200，但**样式全丢**（裸 HTML）—— 不报任何错。
+    生产上对应的坑见 CHANGES.md「关于静态文件」一节。
+    """
+    print('\n[16] 静态资源可达性（漏了页面会裸奔）')
+
+    from django.contrib.staticfiles import finders
+
+    for rel in ('css/meditation.css', 'css/reservation_calendar.css'):
+        found = finders.find(rel)
+        check('找得到 {}'.format(rel), bool(found), True)
+
+    # 两个新页面都引用了新 CSS —— 反过来确认模板里确实引了
+    for tpl_name, css_rel in (
+            ('meditation/calendar.html', 'css/meditation.css'),
+            ('reservation/consultation_calendar.html', 'css/reservation_calendar.css')):
+        path = os.path.join(settings.BASE_DIR, 'web', 'templates', tpl_name)
+        with open(path, encoding='utf-8') as fh:
+            tpl = fh.read()
+        check('{} 引用了 {}'.format(tpl_name.split('/')[-1], css_rel.split('/')[-1]),
+              css_rel in tpl, True)
 
 
 def main():
@@ -705,6 +805,8 @@ def main():
             s12_模块隔离(uid_jia, psy_ops_before)
             s13_咨询预约周历(staff)
             s14_CSRF(staff)
+            s15_未验证单门槛(staff)
+            s16_静态资源可达()
 
             transaction.set_rollback(True)
     except Exception as e:
