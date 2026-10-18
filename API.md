@@ -87,8 +87,8 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
   "status": true,
   "data": {
     "slots": [
-      {"id": 0, "label": "8:20-9:00", "start": "08:20", "end": "09:00"},
-      ... 共 11 档，每档 40 分钟
+      {"id": 0, "label": "9:10-9:50", "start": "09:10", "end": "09:50"},
+      ... 共 7 档，每档 40 分钟（仅工作日）
     ],
     "seats": [
       {"no": 1, "x": 5, "y": 17},
@@ -102,6 +102,9 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
     "notice_min_read_seconds": 5,
     "meditation_room": "410B",
     "checkin_room": "412",
+    "open_weekdays": [0, 1, 2, 3, 4],
+    "open_weekdays_iso": [1, 2, 3, 4, 5],
+    "closed_dates": [],
     "choices": {
       "sex":     [[0,"女"],[1,"男"],[2,"其他或不便透露"]],
       "college": [[0,"商船学院"], ...],
@@ -162,16 +165,17 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
   "status": true,
   "data": {
     "date": "2026-10-19",
-    "taken": [[5, 7], [5, 9], [10, 12]],
+    "taken": [[5, 7], [5, 9], [6, 12]],
     "seat_count": 17,
     "per_slot": [
-      {"slot": 0, "label": "8:20-9:00", "taken": 0, "full": false},
-      ... 共 11 档
+      {"slot": 0, "label": "9:10-9:50", "taken": 0, "full": false},
+      ... 共 7 档
     ]
   }
 }
 ```
 
+- 非开放日（周末/闭馆日）返回 `status:false` + `error.date`，不返回 `per_slot`。
 - 选时段：用 `per_slot` 标「已满 / 剩余 N 位」
 - 选座：用 `taken` 里属于当前时段的 `[时段id, 座位号]`，把对应座位置灰
 
@@ -198,7 +202,7 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
 | `name` | ✓ | 姓名 |
 | `mobile_phone` | ✓ | 手机号（服务端用它做**防重复提交**，也是后续改约/取消的凭证） |
 | `res_date` | ✓ | `YYYY-MM-DD`，不得早于今天 |
-| `slot` | ✓ | 时段 id，0–10 |
+| `slot` | ✓ | 时段 id，0–6 |
 | `seat` | ✓ | 座位号，1–17 |
 | `agree` | ✓ | 传 `1` 表示已同意须知 |
 | `read_seconds` | ✓ | 须知页实际停留秒数，**须 ≥ 5** |
@@ -303,7 +307,7 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
 ```json
 {"status": true,
  "data": {"uid": 1024, "res_date": "2026-10-21", "slot": 2,
-          "slot_label": "10:15-10:55", "seat": 11},
+          "slot_label": "10:50-11:30", "seat": 11},
  "msg": "改约成功"}
 ```
 
