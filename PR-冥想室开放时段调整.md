@@ -72,8 +72,8 @@ MEDITATION_CLOSED_DATES = ['2026-10-01', '2026-10-02']
 | `verify2` | 82 通过（含五条创建路径的周末/闭馆日负例） |
 | `verify4` | 77 通过 |
 | `verify_e2e` | 217 通过（含新增 [18] 开放日校验） |
-| `mp_simulate.js` | 53 通过 |
-| `web_simulate.js` | 45 通过 |
+| `mp_simulate.js` | 54 通过 |
+| `web_simulate.js` | 46 通过 |
 | `_verify_owns.py` | 26 通过 |
 | `_audit_roles.py` | 主席 / 主席助理全流程通过 |
 
