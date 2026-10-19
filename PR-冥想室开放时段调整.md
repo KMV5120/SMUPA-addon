@@ -33,6 +33,7 @@ python manage.py repair_meditation_slots --dry-run \
 ```
 
 `--cutoff` **必须填部署/合并上线时间**：命令只处理该时间之前创建的单，避免把上线后产生的新编号预约误当旧单。
+如果已在 `local_settings.py` 配置 `MEDITATION_SLOT_REPAIR_CUTOFF`，可省略 `--cutoff`，命令会自动取该值。
 
 确认名单无误后再执行：
 
@@ -170,7 +171,7 @@ MEDITATION_SLOT_REPAIR_CUTOFF = '2026-10-20 18:00'
 python manage.py test web.test_meditation_slots
 ```
 
-共 22 条，覆盖：
+共 23 条，覆盖：
 
 - 旧编号显示（7–10 显示“旧时段，已停用”）
 - 旧单 `reg`/受理不会被静默写成 0
