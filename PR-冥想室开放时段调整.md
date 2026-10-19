@@ -3,7 +3,20 @@
 **分支**：`feat/meditation-open-hours-v2`
 **目标**：`master`（已包含 !5 `2273270`）
 **创建 PR**：<https://gitee.com/xing_young/smupa_gzpt/pull/new/xing_young:feat/meditation-open-hours-v2...xing_young:master>
-**前情**：原 PR !6 评审不通过。本 PR 按评审意见重做，已 rebase 到 !5 之上。
+**前情**：原 PR !6 评审不通过。本 PR 按评审意见重做，已 rebase 到 !5 之上；
+并已修复管理员 PR !7 BUG 实测清单中的 4 个代码问题。
+
+## 本版针对 !7 BUG 清单的修复
+
+| BUG | 修复 |
+| --- | --- |
+| 长 comment 截断吃掉 `【时段迁移】`，重复 apply 把已修复单作废 | 标记改为写在 comment **最前面**，截断只影响旧备注；补“长 comment + 重复 apply”回归测试 |
+| 修复后旧 1/4/5 的未验证单仍然过不了 `reg` | `_is_pre_deploy_booking` 识别 comment 里的“已改编号”标记；修复后不再按旧单拦截；补 reg 回归测试 |
+| 旧 0/2/3/6 在列表/打印/详情仍显示新时间 | `slot_display` 结合修复标记与部署时间：未改编号的旧单显示旧时段 + “已停用”；已改编号的显示新时段；补显示测试 |
+| 修复后详情页“原时段”标签张冠李戴（旧 4→新 3 显示成 11:05–11:45） | 从修复标记中解析原始旧时段（`旧时段 4（13:10-13:50）`）；修复后的单不再显示旧时段下拉；补详情 context 测试 |
+
+`MEDITATION_SLOT_REPAIR_CUTOFF` 现在**必须带时分**（`YYYY-MM-DD HH:MM`）：
+只写日期会被忽略，`repair_meditation_slots --cutoff` 也会直接报错。
 
 ---
 
@@ -154,6 +167,7 @@ MEDITATION_CLOSED_DATES = [
 
 ```python
 # 部署时间：该时间之前创建的单，在值班员受理/改约时必须显式重选时段
+# 必须带时分；只写日期会漏掉部署当天早些时候的旧单
 MEDITATION_SLOT_REPAIR_CUTOFF = '2026-10-20 18:00'
 ```
 
@@ -171,13 +185,16 @@ MEDITATION_SLOT_REPAIR_CUTOFF = '2026-10-20 18:00'
 python manage.py test web.test_meditation_slots
 ```
 
-共 23 条，覆盖：
+共 28 条，覆盖：
 
 - 旧编号显示（7–10 显示“旧时段，已停用”）
 - 旧单 `reg`/受理不会被静默写成 0
 - `MEDITATION_CLOSED_DATES` 配成单个 `date`/`int`/字符串不 500
 - 周末 / 闭馆日 / 跨年 / 全部闭馆空列表
 - 修复命令 dry-run、apply、幂等、冲突不自动改号、cutoff 之后的新单不动
+- 长 comment 下重复 apply 不丢标记、不把已修复单作废
+- 修复后旧 1/4/5 的 reg 成功
+- 旧 0/2/3/6 的列表/详情显示旧时段；修复后详情页“原时段”标签取原旧时段
 
 ### 6.2 本地全量回归（已跑）
 
