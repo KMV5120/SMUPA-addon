@@ -82,6 +82,10 @@ UID    姓名        手机号          日期          旧档  旧时段       
 
 - 旧编号（7–10）单：`reg`（通过验证）、`reservation`（受理）、`change`（改约）都会直接返回
   “该预约使用旧时段（已停用），请先改约到新时段”，不会写库。
+- 旧 0/2/3/6 的编号仍在、单看 ID 无法识别，因此增加配置项
+  `MEDITATION_SLOT_REPAIR_CUTOFF`（部署时间）：
+  该时间之前创建的单，必须由值班员显式重选 0–6 中的一档（前端 `slot_changed=1`）才允许受理/改约，
+  否则一律报“请先改约到新时段”。这样部署到脚本执行之间的空窗也不会把老单改错。
 - 旧编号在列表/详情/打印/分享页显示为
   `15:55-16:35（旧时段，已停用）`，不再显示光秃秃的 `8/9/10`。
 
@@ -143,6 +147,19 @@ MEDITATION_CLOSED_DATES = [
 
 若生产已配置旧的 `MEDITATION_NOTICE_HTML`，新默认须知不会生效，请同步更新或删除该覆盖项。
 
+### 修复窗口截止时间（建议配）
+
+`gzpt/local_settings.py`：
+
+```python
+# 部署时间：该时间之前创建的单，在值班员受理/改约时必须显式重选时段
+MEDITATION_SLOT_REPAIR_CUTOFF = '2026-10-20 18:00'
+```
+
+- 修复命令的 `--cutoff` 用同一个时间；
+- 修复完成后可以保留该配置：上线后新单的 `create_datetime` 晚于它，不受影响；
+- 不配也能拦住旧 7–10，但拦不住旧 0/2/3/6 的“编号相同、语义已变”。
+
 ---
 
 ## 六、验证
@@ -153,7 +170,7 @@ MEDITATION_CLOSED_DATES = [
 python manage.py test web.test_meditation_slots
 ```
 
-共 20 条，覆盖：
+共 22 条，覆盖：
 
 - 旧编号显示（7–10 显示“旧时段，已停用”）
 - 旧单 `reg`/受理不会被静默写成 0
@@ -189,7 +206,8 @@ python manage.py test web.test_meditation_slots
 ## 七、合并顺序与风险
 
 1. 本 PR 已 rebase 到 `!5` 合并后的 `master`（`2273270`）。
-2. 合并后先 `migrate web`，**再**执行修复命令；命令的 `--cutoff` 填**本次部署时间**。
+2. 合并前在 `gzpt/local_settings.py` 配 `MEDITATION_SLOT_REPAIR_CUTOFF` = 本次部署时间。
+3. 合并后先 `migrate web`，**再**执行修复命令；命令的 `--cutoff` 填同一个部署时间。
 3. 修复命令先 `--dry-run` 给管理员/业务方看名单，确认后再 `--apply`。
 4. 若 `--dry-run` 名单里出现上线后创建的、使用新编号的正常单 → 说明 cutoff 填晚了，
    请改用精确的部署时间重跑，不要直接 `--apply`。
