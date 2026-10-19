@@ -151,9 +151,14 @@ def preflight(platform, py, origin, url):
             f.write(
                 "from gzpt.settings import *  # noqa\n"
                 "import os\n"
+                "_db = os.path.join(os.path.dirname(__file__), 'test.sqlite3')\n"
                 "DATABASES = {'default': {'ENGINE': "
-                "'django.db.backends.sqlite3', 'NAME': os.path.join("
-                "os.path.dirname(__file__), 'test.sqlite3')}}\n"
+                "'django.db.backends.sqlite3', 'NAME': _db, "
+                "'TEST': {'NAME': os.path.join(os.path.dirname(__file__), "
+                "'test_runner.sqlite3')}}}\n"
+                "_root = os.path.abspath(os.path.dirname(__file__))\n"
+                "if not os.path.abspath(_db).startswith(_root + os.sep):\n"
+                "    raise RuntimeError('refusing non-temp DB: ' + _db)\n"
                 "CACHES = {'default': {'BACKEND': "
                 "'django.core.cache.backends.locmem.LocMemCache'}}\n"
                 "EMAIL_BACKEND = "
@@ -169,6 +174,7 @@ def preflight(platform, py, origin, url):
             )
         env = base_env(platform, tmp)
         env['DJANGO_SETTINGS_MODULE'] = 'golive_settings'
+        env['SMUPA_GOLIVE_TEMP_DB'] = os.path.join(tmp, 'test.sqlite3')
         out = run('backend-tests',
                   [py, 'manage.py', 'test', 'web', '-v', '1'],
                   platform, env, timeout=900)
@@ -193,9 +199,12 @@ def _write_rehearsal_settings(tmp):
         f.write(
             "from gzpt.settings import *  # noqa\n"
             "import os\n"
+            "_db = os.path.join(os.path.dirname(__file__), 'rehearsal.sqlite3')\n"
             "DATABASES = {'default': {'ENGINE': "
-            "'django.db.backends.sqlite3', 'NAME': os.path.join("
-            "os.path.dirname(__file__), 'rehearsal.sqlite3')}}\n"
+            "'django.db.backends.sqlite3', 'NAME': _db}}\n"
+            "_root = os.path.abspath(os.path.dirname(__file__))\n"
+            "if not os.path.abspath(_db).startswith(_root + os.sep):\n"
+            "    raise RuntimeError('refusing non-temp DB: ' + _db)\n"
             "CACHES = {'default': {'BACKEND': "
             "'django.core.cache.backends.locmem.LocMemCache'}}\n"
             "EMAIL_BACKEND = "
@@ -220,6 +229,7 @@ def rehearsal(platform, py, workdir):
         _write_rehearsal_settings(tmp)
         env = base_env(platform, tmp)
         env['DJANGO_SETTINGS_MODULE'] = 'golive_rehearsal_settings'
+        env['SMUPA_GOLIVE_TEMP_DB'] = os.path.join(tmp, 'rehearsal.sqlite3')
         run('rehearsal-migrate', [py, 'manage.py', 'migrate', '--noinput'],
             platform, env)
         script = os.path.join(os.path.dirname(os.path.abspath(__file__)),

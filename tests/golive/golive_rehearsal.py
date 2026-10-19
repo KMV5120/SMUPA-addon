@@ -5,15 +5,28 @@
 """
 import datetime
 import io
+import os
 import sys
 
 import django
 
 django.setup()
 
+from django.conf import settings  # noqa: E402
 from django.core.management import call_command  # noqa: E402
 
 from web import models  # noqa: E402
+
+# 硬门禁：只允许写 golive.py 创建的临时 SQLite，绝不碰生产库
+_expected = os.environ.get('SMUPA_GOLIVE_TEMP_DB')
+_actual = os.path.abspath(settings.DATABASES['default']['NAME'])
+if (not _expected
+        or _actual != os.path.abspath(_expected)
+        or 'rehearsal.sqlite3' not in _actual):
+    print('REFUSING: not a golive rehearsal DB')
+    print('  expected = {!r}'.format(_expected))
+    print('  actual   = {!r}'.format(_actual))
+    sys.exit(3)
 from web.meditation_constants import format_res_datetime  # noqa: E402
 
 FAIL = []
