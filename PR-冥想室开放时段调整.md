@@ -167,15 +167,16 @@ UID    姓名        手机号          日期          旧档  旧时段       
 | `0021_meditation_slot_schedule` | 仅 `Med_Reservation.slot` 的 choices `AlterField`，不改列类型、不改数据 |
 | `0022_med_slot_migration` | 新建 `Med_SlotMigration` 迁移记录表（OneToOne） |
 
-部署脚本**不会**自动跑 migrate。建议**合并前**先执行：
+部署脚本**不会**自动跑 migrate。合并后请**立即**执行：
 
 ```bash
 python manage.py migrate web
 ```
 
-`0022` 只是新建表，旧代码不会读取它；先迁移可以避免“代码已上线、表还没建”
-的短窗口内列表页因 `prefetch_related('slot_migration')` 报错。`0021` 只是 choices 快照，
-先迁移也无副作用。
+`0022` 只是新建表。代码对“表尚未迁移”做了回退：`get_slot_state()` 会捕获
+`OperationalError` 并按“无迁移记录”处理，列表/详情页在 deploy 完成到 migrate
+之间的短窗口内**不会 500**；但 `repair_meditation_slots` 和
+`verify_meditation_slots` 必须先完成 migrate 才能运行。`0021` 只是 choices 快照。
 
 ---
 
@@ -263,9 +264,9 @@ python manage.py test web.test_meditation_slots
 
 1. 本 PR 已 rebase 到 `!5` 合并后的 `master`（`2273270`）。
 2. 合并前在 `gzpt/local_settings.py` 配 `MEDITATION_SLOT_REPAIR_CUTOFF` = 本次部署时间。
-3. **合并前**先 `python manage.py migrate web`（`0022` 只新建迁移记录表，旧代码不受影响），
-   避免代码上线后、表还没建时的短窗口报错。
-4. 合并后执行修复命令；命令的 `--cutoff` 填同一个部署时间，最后跑
+3. 合并/部署完成后**立即** `python manage.py migrate web`（代码对缺表有回退，
+   窗口内页面不会 500；但修复/校验命令必须先 migrate）。
+4. 执行修复命令；命令的 `--cutoff` 填同一个部署时间，最后跑
    `python manage.py verify_meditation_slots` 确认 `OK`。
 5. 修复命令先 `--dry-run` 给管理员/业务方看名单，确认后再 `--apply`。
 6. 若 `--dry-run` 名单里出现上线后创建的、使用新编号的正常单 → 说明 cutoff 填晚了，
