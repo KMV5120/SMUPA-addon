@@ -18,6 +18,28 @@
 `MEDITATION_SLOT_REPAIR_CUTOFF` 现在**必须带时分**（`YYYY-MM-DD HH:MM`）：
 只写日期会被忽略，`repair_meditation_slots --cutoff` 也会直接报错。
 
+### 结构性修复：迁移状态表 + 单一事实源
+
+新增 `Med_SlotMigration` 表（OneToOne，`reservation_uid` 唯一）：
+
+| 字段 | 用途 |
+| --- | --- |
+| `old_slot` / `new_slot` | 原始旧编号 / 新编号 |
+| `action` | `remap` / `void` / `mark` / `conflict` |
+| `note` / `migrated_at` | 说明与处理时间 |
+
+所有“是否旧单 / 是否已修复 / 该显示什么 / 要不要重选”的判断统一走
+`web/meditation_slot_state.py:get_slot_state()`，不再从 `comment` 或
+`create_datetime` 推断。这样：
+
+- 长 comment 截断不会影响状态；
+- 修复后的单 `reg`/受理/改约不会被再次当成旧单；
+- 旧 0/2/3/6 与修复后的标签都有原始旧时段可查；
+- 迁移记录唯一约束保证命令幂等。
+
+新增 `python manage.py verify_meditation_slots`：检查有效单是否仍有旧编号、
+是否重复占用、迁移记录是否一致、是否仍有需人工重选的单；有问题退出码 1。
+
 ---
 
 ## 一、必改 1：老预约的时段编号修复
@@ -85,7 +107,8 @@ UID    姓名        手机号          日期          旧档  旧时段       
 
 ### 1.4 幂等与回滚
 
-- **幂等**：处理过的单会在 `Med_Form_Data.comment` 写入 `【时段迁移】`；重复执行会跳过，不会二次改编号或重复作废。
+- **幂等**：以 `Med_SlotMigration` 唯一记录为准；重复执行会跳过，不会二次改编号或重复作废。
+  上一版用 `【时段迁移】` comment 标记处理过的单，命令会自动补迁移记录（`backfill`），不改数据。
 - **回滚方式**：
   1. 执行 `--apply` 前先备份数据库（宝塔/部署脚本的备份即可）；
   2. 保留 `--output` 生成的 CSV 作为变更清单；
@@ -134,13 +157,22 @@ UID    姓名        手机号          日期          旧档  旧时段       
 
 ## 四、迁移
 
-`web/migrations/0021_meditation_slot_schedule.py`：仅 `Med_Reservation.slot` 的 choices `AlterField`，不改列类型、不改数据。
+包含两个迁移：
 
-部署脚本**不会**自动跑 migrate。合并后管理员执行：
+| 迁移 | 内容 |
+| --- | --- |
+| `0021_meditation_slot_schedule` | 仅 `Med_Reservation.slot` 的 choices `AlterField`，不改列类型、不改数据 |
+| `0022_med_slot_migration` | 新建 `Med_SlotMigration` 迁移记录表（OneToOne） |
+
+部署脚本**不会**自动跑 migrate。建议**合并前**先执行：
 
 ```bash
 python manage.py migrate web
 ```
+
+`0022` 只是新建表，旧代码不会读取它；先迁移可以避免“代码已上线、表还没建”
+的短窗口内列表页因 `prefetch_related('slot_migration')` 报错。`0021` 只是 choices 快照，
+先迁移也无副作用。
 
 ---
 
@@ -185,7 +217,7 @@ MEDITATION_SLOT_REPAIR_CUTOFF = '2026-10-20 18:00'
 python manage.py test web.test_meditation_slots
 ```
 
-共 28 条，覆盖：
+共 36 条，覆盖：
 
 - 旧编号显示（7–10 显示“旧时段，已停用”）
 - 旧单 `reg`/受理不会被静默写成 0
@@ -195,6 +227,9 @@ python manage.py test web.test_meditation_slots
 - 长 comment 下重复 apply 不丢标记、不把已修复单作废
 - 修复后旧 1/4/5 的 reg 成功
 - 旧 0/2/3/6 的列表/详情显示旧时段；修复后详情页“原时段”标签取原旧时段
+- `get_slot_state` 对 remap/void/mark/conflict 四种记录的状态
+- `verify_meditation_slots`：干净库通过；重复座位/旧编号有效单退出码 1
+- 上一版 comment 标记自动回填迁移记录
 
 ### 6.2 本地全量回归（已跑）
 
@@ -225,8 +260,11 @@ python manage.py test web.test_meditation_slots
 
 1. 本 PR 已 rebase 到 `!5` 合并后的 `master`（`2273270`）。
 2. 合并前在 `gzpt/local_settings.py` 配 `MEDITATION_SLOT_REPAIR_CUTOFF` = 本次部署时间。
-3. 合并后先 `migrate web`，**再**执行修复命令；命令的 `--cutoff` 填同一个部署时间。
-3. 修复命令先 `--dry-run` 给管理员/业务方看名单，确认后再 `--apply`。
-4. 若 `--dry-run` 名单里出现上线后创建的、使用新编号的正常单 → 说明 cutoff 填晚了，
+3. **合并前**先 `python manage.py migrate web`（`0022` 只新建迁移记录表，旧代码不受影响），
+   避免代码上线后、表还没建时的短窗口报错。
+4. 合并后执行修复命令；命令的 `--cutoff` 填同一个部署时间，最后跑
+   `python manage.py verify_meditation_slots` 确认 `OK`。
+5. 修复命令先 `--dry-run` 给管理员/业务方看名单，确认后再 `--apply`。
+6. 若 `--dry-run` 名单里出现上线后创建的、使用新编号的正常单 → 说明 cutoff 填晚了，
    请改用精确的部署时间重跑，不要直接 `--apply`。
-5. 修复命令不会自动改 `conflict` 单；这些单需要人工改约或作废。
+7. 修复命令不会自动改 `conflict` 单；这些单需要人工改约或作废。
