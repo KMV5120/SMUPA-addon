@@ -86,6 +86,30 @@
    - 静态页必须先部署带 `supports_query_token` / `tokens` 的版本（`?v=20261020`）。
    - 如果旧页面还在用：提交会被拒绝（提示刷新），查询会提示刷新；**不要在前端更新前合并**。
 
+   Ubuntu 侧部署（`learning-assistant` 仓库，`feat/meditation-booking` @ `1d68fd2`）：
+
+   ```bash
+   cd /path/to/learning-assistant
+   git fetch origin
+   git checkout feat/meditation-booking
+   git pull
+   sudo Web/tools/sync-meditation.sh v2
+   ```
+
+   - `v2` = 带查询凭据的新前端；`v1` = 旧版，保留用于回滚。
+   - `sync-meditation.sh` 会把版本同步到 `/var/www/meditation/` 并把 `current` 指向 v2。
+   - **不需要** reload nginx、不需要重启学习助手容器、不需要数据库迁移。
+   - nginx 对 `/meditation/` 已经是 `no-cache`，不需要改缓存配置。
+
+   回滚前端：
+
+   ```bash
+   sudo Web/tools/sync-meditation.sh v1
+   ```
+
+   ⚠️ `v1` 不支持 `query_token` / `tokens`；**回滚前端必须同时回滚平台后端 PR**，
+   否则旧页面的提交会被新后端的 `supports_query_token` 闸门拒绝。
+
 6. **再合并本 PR**，看部署日志：
    ```bash
    tail -f /www/wwwlogs/deploy-smupa_gzpt.log
