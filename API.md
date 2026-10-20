@@ -67,10 +67,10 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
 | 1 | `layout/` | 取时段表 + 17 座坐标 + 选项 | 无 |
 | 2 | `notice/` | 取《须知与承诺》正文 | 无 |
 | 3 | `slots/` | 查某日各时段占用 | 无 |
-| 4 | `submit/` | 提交预约 | 无 |
-| 5 | `mpl/list/` | 查我的预约（凭手机号） | 无 |
-| 6 | `cancel/` | 取消预约 | 凭手机号 |
-| 7 | `reschedule/` | 改约 | 凭手机号 |
+| 4 | `submit/` | 提交预约 | 无（网页匿名须带 `supports_query_token`） |
+| 5 | `mpl/list/` | 查我的预约 | 查询凭据或小程序 openid |
+| 6 | `cancel/` | 取消预约 | **仅小程序 openid** |
+| 7 | `reschedule/` | 改约 | **仅小程序 openid** |
 | 8 | `wxlogin/` | 微信小程序登录（**现在用不到**） | 无 |
 
 > 只有第 8 个是给将来的小程序预留的，**网页对接完全不需要它**。
@@ -225,11 +225,17 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
     "uid": 1024, "res_date": "2026-10-19", "slot": 5,
     "slot_label": "15:20-16:00", "seat": 7,
     "meditation_room": "410B", "checkin_room": "412",
-    "min_ahead_minutes": 5
+    "min_ahead_minutes": 5,
+    "query_token": "Lh3...（43 字符，仅返回一次）"
   },
   "msg": "预约已提交，请牢记单号 1024"
 }
 ```
+
+> **新增（2026-10-20）**：`query_token` 是这张单的查询凭据，网页必须保存在本机
+> （如 `localStorage`），查询时随 `mpl/list/` 一起发送。服务端只存它的哈希。
+> 匿名提交时必须带 `"supports_query_token": true`；不带会被当成旧版页面拒绝，
+> 避免生成一张以后查不到的预约。
 
 **典型失败**
 ```json
@@ -245,25 +251,44 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
 
 ## 5. `POST mpl/list/` — 我的预约
 
-**请求** `{"mobile_phone": "13911112222"}`
+**请求**
+
+```json
+{"mobile_phone": "13911112222", "tokens": ["提交时返回的 query_token", "..."]}
+```
+
+- 小程序：带 `X-Med-Openid` / `X-Med-Token`，按 openid 返回本人记录；`tokens` 可省略。
+- 网页：必须带本机保存的 `tokens`（没有就传空数组 `[]`）。
+- **只传手机号、连 `tokens` 字段都没有** → 返回“页面版本过旧，请刷新页面后重试”。
 
 **响应**
+
 ```json
 {
   "status": true,
   "data": {
     "list": [{
-      "uid": 1024, "name": "张三", "mobile_phone": "13911112222",
+      "uid": 1024, "mobile_phone": "****2222",
       "res_date": "2026-10-19", "slot": 5, "slot_label": "15:20-16:00", "seat": 7,
       "status": 5, "status_display": "未验证预约",
-      "checkin_datetime": null, "checkout_datetime": null,
-      "can_cancel": true, "cancel_reason": ""
-    }]
+      "checkin_datetime": null, "checkout_datetime": null
+    }],
+    "token_required": false
   }
 }
 ```
 
-`can_cancel=false` 时 `cancel_reason` 说明原因（如「距开始不足 60 分钟」），可直接提示。
+归属分三档：
+
+| 情况 | 返回 |
+| --- | --- |
+| 小程序 openid 命中 | 完整字段 + `name` + `can_cancel` / `cancel_reason` |
+| 网页 `query_token` 命中 | 脱敏字段（单号/日期/时段/座位/状态/签到签退，手机号打码），**不给** `name` / `can_cancel` |
+| 历史无凭据单且未过期 | 仅最小摘要：`res_date` / `slot` / `slot_label` / `status` / `status_display`，带 `needs_query_token: true` |
+
+`token_required=true` 表示本请求没有可用于查看的凭据；前端应提示
+“本设备没有保存该手机号的查询凭证，请使用预约时的浏览器，或联系值班员”。
+`can_cancel=false` 时 `cancel_reason` 说明原因（如「距开始不足 60 分钟」）。
 
 **状态码** `status` 字段的取值：
 
