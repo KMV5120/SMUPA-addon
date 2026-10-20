@@ -72,19 +72,7 @@
    `web_med_slotmigration` 表、全部预约单、前端 `?v=20261020`。
    迁移还没跑时 0023/0024 显示 FAIL 是预期的；先看预约单和配置。
 
-3. **删除测试单（先 dry-run，再 --apply）**
-   ```bash
-   <项目 python> manage.py meditation_preflight --delete-uids 1,2,3
-   ```
-   确认名单无误后：
-   ```bash
-   <项目 python> manage.py meditation_preflight --delete-uids 1,2,3 --apply \
-     --output /tmp/meditation_deleted.csv
-   ```
-   - 会级联删除表单/操作/分享/迁移记录。
-   - 不想用命令也可以继续在后台按 uid 删。
-
-4. **先应用迁移（关键）**
+3. **先应用迁移（关键）**
    ```bash
    cd <平台目录>
    git fetch origin
@@ -99,11 +87,24 @@
    期望看到 `Applying web.0023... OK`、`Applying web.0024... OK`。
    > `<项目 python>` 用宝塔 Python 项目管理器里该项目实际使用的解释器，不要用仓库里的 `smupa_gzpt_venv/`。
 
-5. **再跑一次预检，确认迁移/列都 OK**
+4. **再跑一次预检，确认迁移/列都 OK**
    ```bash
    <项目 python> manage.py meditation_preflight
    ```
    期望 0 项 FAIL；前端检查可能 WARN，确认 v2 已上线即可。
+
+5. **删除测试单（先 dry-run，再 --apply）**
+   ```bash
+   <项目 python> manage.py meditation_preflight --delete-uids 1,2,3
+   ```
+   确认名单无误后：
+   ```bash
+   <项目 python> manage.py meditation_preflight --delete-uids 1,2,3 --apply \
+     --output /tmp/meditation_deleted.csv
+   ```
+   - 会级联删除表单/操作/分享/迁移记录。
+   - 此时迁移已 OK，命令应正常退出；如果预检还有 FAIL，先处理再删。
+   - 不想用命令也可以继续在后台按 uid 删。
 
 6. **确认前端已先更新**
    - 静态页必须先部署带 `supports_query_token` / `tokens` 的版本（`?v=20261020`）。
