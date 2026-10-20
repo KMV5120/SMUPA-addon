@@ -292,7 +292,10 @@ def post_deploy(url, origin):
     try:
         status, body, _ = _get(base + '/meditation/api/layout/')
         data = json.loads(body).get('data') or {}
-        ok = (status == 200 and len(data.get('slots') or []) == 7
+        slots = data.get('slots') or []
+        ok = (status == 200 and len(slots) == 7
+              and slots[0].get('label') == '09:00-09:40'
+              and slots[-1].get('label') == '16:10-16:50'
               and data.get('seat_count') == 17
               and 'open_weekdays_iso' in data and 'closed_dates' in data)
         say('PASS' if ok else 'FAIL', 'live-layout',
@@ -302,7 +305,7 @@ def post_deploy(url, origin):
 
     try:
         status, body, _ = _get(base + '/meditation/api/notice/')
-        ok = status == 200 and '09:10' in body and '17:00' in body
+        ok = status == 200 and '09:00' in body and '16:50' in body and '17:00' in body
         say('PASS' if ok else 'FAIL', 'live-notice', 'status={}'.format(status))
     except Exception as exc:
         say('FAIL', 'live-notice', str(exc))

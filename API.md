@@ -87,7 +87,7 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
   "status": true,
   "data": {
     "slots": [
-      {"id": 0, "label": "9:10-9:50", "start": "09:10", "end": "09:50"},
+      {"id": 0, "label": "09:00-09:40", "start": "09:00", "end": "09:40"},
       ... 共 7 档，每档 40 分钟（仅工作日）
     ],
     "seats": [
@@ -168,7 +168,7 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
     "taken": [[5, 7], [5, 9], [6, 12]],
     "seat_count": 17,
     "per_slot": [
-      {"slot": 0, "label": "9:10-9:50", "taken": 0, "full": false},
+      {"slot": 0, "label": "09:00-09:40", "taken": 0, "full": false},
       ... 共 7 档
     ]
   }
@@ -223,7 +223,7 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
   "status": true,
   "data": {
     "uid": 1024, "res_date": "2026-10-19", "slot": 5,
-    "slot_label": "14:00-14:40", "seat": 7,
+    "slot_label": "15:20-16:00", "seat": 7,
     "meditation_room": "410B", "checkin_room": "412",
     "min_ahead_minutes": 5
   },
@@ -254,7 +254,7 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
   "data": {
     "list": [{
       "uid": 1024, "name": "张三", "mobile_phone": "13911112222",
-      "res_date": "2026-10-19", "slot": 5, "slot_label": "14:00-14:40", "seat": 7,
+      "res_date": "2026-10-19", "slot": 5, "slot_label": "15:20-16:00", "seat": 7,
       "status": 5, "status_display": "未验证预约",
       "checkin_datetime": null, "checkout_datetime": null,
       "can_cancel": true, "cancel_reason": ""
@@ -307,7 +307,7 @@ MEDITATION_CORS_ORIGINS=https://kmv-learning-assistant.xyz
 ```json
 {"status": true,
  "data": {"uid": 1024, "res_date": "2026-10-21", "slot": 2,
-          "slot_label": "10:50-11:30", "seat": 11},
+          "slot_label": "10:40-11:20", "seat": 11},
  "msg": "改约成功"}
 ```
 

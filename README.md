@@ -206,8 +206,8 @@ platform/
 
 ### 时段与座位是固定常量，由接口下发
 
-11 个时段档（每档 40 分钟）与 17 个座位坐标定义在
-`platform/new-files/web/meditation_constants.py`，通过 `/layout/` 接口下发给前端。
+7 个时段档（每档 40 分钟）与 17 个座位坐标定义在正式仓库的
+`web/meditation_constants.py`，通过 `/layout/` 接口下发给前端。
 **前端不硬编码坐标** —— 保证各端座位图不会画得不一样。
 
 ### 🚨 按-IP 限流不要用「每人一个 IP」的思路调小
