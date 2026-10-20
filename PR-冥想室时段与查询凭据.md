@@ -49,23 +49,39 @@
 
 ### 合并前
 
+0. **复制预检命令（不用先合并代码）**
+   ```bash
+   cd <平台目录>
+   git fetch origin
+   git show origin/feat/meditation-query-token:web/management/commands/meditation_preflight.py \
+     > web/management/commands/meditation_preflight.py
+   ```
+
 1. **备份生产数据库**
    ```bash
    cd <平台目录>
    cp db.sqlite3 db.sqlite3.bak_20261020
    ```
 
-2. **删除测试预约单**（时段改版的测试数据；后台按 uid 核对）
-   - 后台：`https://gzpt.smupa.top/admin/011215/web/medreservation/`
-   - 删除后确认：
-     ```bash
-     <项目 python> manage.py shell -c "from web import models; print(models.Med_Reservation.objects.count())"
-     ```
-     期望 `0`，或只剩明确要保留的历史单。
+2. **跑预检（默认只读）**
+   ```bash
+   <项目 python> manage.py meditation_preflight
+   ```
+   会检查：备份、`cutoff`/`notice`/CORS、0023/0024、`query_token_hash` 列、
+   `web_med_slotmigration` 表、全部预约单、前端 `?v=20261020`。
+   迁移还没跑时 0023/0024 显示 FAIL 是预期的；先看预约单和配置。
 
-3. **检查生产 `gzpt/local_settings.py`**
-   - `MEDITATION_SLOT_REPAIR_CUTOFF` 置空（或过去的确认时间），**不能是未来时间**
-   - 如配置了 `MEDITATION_NOTICE_HTML`，同步改成新时间或删除覆盖
+3. **删除测试单（先 dry-run，再 --apply）**
+   ```bash
+   <项目 python> manage.py meditation_preflight --delete-uids 1,2,3
+   ```
+   确认名单无误后：
+   ```bash
+   <项目 python> manage.py meditation_preflight --delete-uids 1,2,3 --apply \
+     --output /tmp/meditation_deleted.csv
+   ```
+   - 会级联删除表单/操作/分享/迁移记录。
+   - 不想用命令也可以继续在后台按 uid 删。
 
 4. **先应用迁移（关键）**
    ```bash
@@ -82,7 +98,13 @@
    期望看到 `Applying web.0023... OK`、`Applying web.0024... OK`。
    > `<项目 python>` 用宝塔 Python 项目管理器里该项目实际使用的解释器，不要用仓库里的 `smupa_gzpt_venv/`。
 
-5. **确认前端已先更新**
+5. **再跑一次预检，确认迁移/列都 OK**
+   ```bash
+   <项目 python> manage.py meditation_preflight
+   ```
+   期望 0 项 FAIL；前端检查可能 WARN，确认 v2 已上线即可。
+
+6. **确认前端已先更新**
    - 静态页必须先部署带 `supports_query_token` / `tokens` 的版本（`?v=20261020`）。
    - 如果旧页面还在用：提交会被拒绝（提示刷新），查询会提示刷新；**不要在前端更新前合并**。
 
@@ -110,24 +132,24 @@
    ⚠️ `v1` 不支持 `query_token` / `tokens`；**回滚前端必须同时回滚平台后端 PR**，
    否则旧页面的提交会被新后端的 `supports_query_token` 闸门拒绝。
 
-6. **再合并本 PR**，看部署日志：
+7. **再合并本 PR**，看部署日志：
    ```bash
    tail -f /www/wwwlogs/deploy-smupa_gzpt.log
    ```
 
 ### 合并后
 
-7. 如果第 4 步没有预跑迁移，立即补跑：
+8. 如果第 4 步没有预跑迁移，立即补跑：
    ```bash
    <项目 python> manage.py migrate web
    ```
 
-8. 不变量检查：
+9. 不变量检查：
    ```bash
    <项目 python> manage.py verify_meditation_slots
    ```
 
-9. 线上抽查：
+10. 线上抽查：
    ```bash
    curl -s https://gzpt.smupa.top/meditation/api/layout/
    curl -s https://gzpt.smupa.top/meditation/api/notice/
